@@ -1,0 +1,1739 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tâches — 4 projets</title>
+<meta name="description" content="Quatre projets, un seul tableau de tâches. Fonctionne hors ligne.">
+<meta name="theme-color" content="#f5f5f2" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d0e11" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="4 projets">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f5f5f2;
+    --surface:#ffffff;
+    --ink:#15151b;
+    --ink-2:#52525e;
+    --muted:#9a9aa4;
+    --line:#e8e8e3;
+    --hover:#fafaf7;
+    --danger:#c14a3a;
+    --accent:#15151b;
+    --accent-2:#52525e;
+    --accent-soft:#f0f0ec;
+    --box:#c9c9d2;
+    --danger-soft:rgba(193,74,58,.11);
+    --veil:rgba(245,245,242,.74);
+    --toast-btn:rgba(255,255,255,.18);
+    --toast-btn-hi:rgba(255,255,255,.3);
+    --radius:22px;
+    --shadow:0 1px 2px rgba(20,20,26,.05), 0 22px 44px -30px rgba(20,20,26,.38);
+    --shadow-hi:0 2px 4px rgba(20,20,26,.06), 0 30px 60px -30px rgba(20,20,26,.42);
+    --ease:cubic-bezier(.22,.68,0,1);
+    --bounce:cubic-bezier(.34,1.56,.64,1);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0d0e11;
+      --surface:#15161a;
+      --ink:#ededf0;
+      --ink-2:#a9a9b4;
+      --muted:#6d6d78;
+      --line:#26262c;
+      --hover:#1b1c21;
+      --danger:#e0755f;
+      --accent:#ededf0;
+      --accent-2:#a9a9b4;
+      --accent-soft:#1e1f25;
+      --box:#3c3c46;
+      --danger-soft:rgba(224,117,95,.14);
+      --veil:rgba(13,14,17,.78);
+      --toast-btn:rgba(0,0,0,.14);
+      --toast-btn-hi:rgba(0,0,0,.24);
+      --shadow:0 1px 2px rgba(0,0,0,.5), 0 22px 44px -30px rgba(0,0,0,.8);
+      --shadow-hi:0 2px 4px rgba(0,0,0,.5), 0 30px 60px -30px rgba(0,0,0,.9);
+    }
+  }
+
+  /* une couleur par projet */
+  .c0{--accent:#137a5f;--accent-2:#3ea98a;--accent-soft:#e7f3ef;--accent-ink:#0d5c47}
+  .c1{--accent:#3b52c4;--accent-2:#6b7ee6;--accent-soft:#eaedfb;--accent-ink:#2c3f9c}
+  .c2{--accent:#a96a12;--accent-2:#d69a3c;--accent-soft:#fbf1e0;--accent-ink:#845110}
+  .c3{--accent:#a03464;--accent-2:#d0688f;--accent-soft:#fbeaf1;--accent-ink:#7d2750}
+  @media (prefers-color-scheme: dark){
+    .c0{--accent:#3ecfa4;--accent-2:#8ce4c7;--accent-soft:#13241f;--accent-ink:#8ce4c7}
+    .c1{--accent:#8496ff;--accent-2:#b3bfff;--accent-soft:#171a2c;--accent-ink:#b3bfff}
+    .c2{--accent:#e0ab55;--accent-2:#f0cd8d;--accent-soft:#241d12;--accent-ink:#f0cd8d}
+    .c3{--accent:#e08cb0;--accent-2:#f0b6ce;--accent-soft:#28161f;--accent-ink:#f0b6ce}
+  }
+
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%;height:100%}
+  body{
+    margin:0;
+    height:100%;
+    display:flex;flex-direction:column;overflow:hidden;
+    background:
+      radial-gradient(1100px 520px at 50% -8%, var(--surface) 0%, transparent 62%),
+      var(--bg);
+    color:var(--ink);
+    font-family:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    font-size:13px;line-height:1.5;
+    font-variant-numeric:tabular-nums;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+  }
+  .wrap{max-width:1440px;margin:0 auto;padding:0 24px}
+  .serif{font-family:"Instrument Serif",Georgia,"Times New Roman",serif;font-weight:400;font-style:italic}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:6px}
+
+  /* ---------------- barre du haut compacte ---------------- */
+  .topbar{
+    display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:16px;
+    padding:calc(14px + env(safe-area-inset-top, 0px)) 24px 12px;max-width:1440px;margin:0 auto;width:100%;
+  }
+  .meter{grid-column:2;justify-self:center;display:flex;align-items:center;gap:9px;font-size:11px;font-weight:600;color:var(--muted)}
+  .meter b{color:var(--ink);font-weight:700}
+  .global{width:110px;height:5px;border-radius:99px;background:var(--line);overflow:hidden}
+  .global i{
+    display:block;height:100%;width:0;border-radius:99px;
+    background:linear-gradient(90deg,#137a5f,#3b52c4,#a96a12,#a03464);
+    background-size:520px 100%;
+    transition:width .7s var(--ease);
+  }
+  @media (prefers-color-scheme: dark){
+    .global i{background:linear-gradient(90deg,#3ecfa4,#8496ff,#e0ab55,#e08cb0);background-size:520px 100%}
+  }
+
+  /* ---------------- tableau ---------------- */
+  .board{display:grid;grid-template-columns:repeat(var(--cols,4),minmax(0,1fr));gap:14px;flex:1;min-height:0}
+  .col{
+    position:relative;overflow:hidden;
+    background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    padding:18px 14px 12px;
+    display:flex;flex-direction:column;min-height:0;
+    transition:box-shadow .4s var(--ease),transform .4s var(--ease),border-color .4s var(--ease);
+  }
+  .col:hover{box-shadow:var(--shadow-hi);transform:translateY(-2px)}
+  .col.leaving{
+    opacity:0;transform:scale(.96) translateY(10px);pointer-events:none;
+    transition:opacity .3s ease,transform .3s var(--ease);
+  }
+  .col::before{
+    content:"";position:absolute;top:0;left:50%;transform:translateX(-50%);
+    width:34px;height:3px;border-radius:0 0 99px 99px;background:var(--accent);
+    transition:width .5s var(--ease),background .4s var(--ease);
+  }
+  .col.is-done::before{width:100%;background:linear-gradient(90deg,var(--accent),var(--accent-2))}
+  .col.is-done{border-color:var(--accent-2)}
+
+  .col-h{text-align:center;min-height:44px;display:flex;flex-direction:column;justify-content:center;gap:6px}
+  .name{
+    font-size:12.5px;font-weight:600;letter-spacing:-.01em;margin:0;
+    outline:none;border-bottom:1px dashed transparent;padding-bottom:1px;cursor:text;
+    word-break:break-word;transition:border-color .2s ease,color .2s ease;
+  }
+  .name:hover{border-bottom-color:var(--muted)}
+  .name:focus{border-bottom-color:var(--accent);color:var(--accent-ink)}
+  .badge{
+    align-self:center;
+    font-size:9.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;
+    color:#fff;background:var(--accent);border-radius:99px;padding:3px 9px;
+    opacity:0;transform:scale(.6);pointer-events:none;
+  }
+  @media (prefers-color-scheme: dark){.badge{color:#0d0e11}}
+  .col.is-done .badge{opacity:1;transform:scale(1);animation:badgeIn .5s var(--bounce) both}
+  @keyframes badgeIn{0%{opacity:0;transform:scale(.5)}60%{opacity:1;transform:scale(1.12)}100%{opacity:1;transform:scale(1)}}
+
+  .col-stat{display:flex;align-items:baseline;justify-content:center;gap:8px;margin:10px 0 8px}
+  .pct{font-size:18px;font-weight:700;letter-spacing:-.03em;color:var(--ink);transition:color .4s ease}
+  .col.is-done .pct{color:var(--accent)}
+  .count{font-size:10px;font-weight:500;color:var(--muted)}
+  /* bouton : copier les tâches à faire du projet */
+  .copyall{
+    appearance:none;border:0;background:none;cursor:pointer;color:var(--muted);
+    width:22px;height:22px;padding:0;border-radius:7px;
+    display:grid;place-items:center;align-self:center;
+    transition:color .2s ease,background .2s ease,transform .15s var(--ease);
+  }
+  .copyall svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .copyall:hover{color:var(--accent);background:var(--accent-soft)}
+  .copyall:active{transform:scale(.9)}
+  .copyall.copie{animation:copie .55s ease-out}
+  .bar{height:4px;border-radius:99px;background:var(--line);overflow:hidden}
+  .bar i{
+    display:block;height:100%;width:0;border-radius:99px;
+    background:linear-gradient(90deg,var(--accent),var(--accent-2));
+    transition:width .7s var(--ease);
+  }
+
+  /* ---------------- tâches (centrées dans la colonne) ---------------- */
+  .list{
+    list-style:none;margin:12px 0 0;padding:0 2px 0 0;flex:1;min-height:0;overflow-y:auto;
+    scrollbar-width:thin;scrollbar-color:var(--line) transparent;
+  }
+  .list::-webkit-scrollbar{width:6px}
+  .list::-webkit-scrollbar-track{background:transparent}
+  .list::-webkit-scrollbar-thumb{background:var(--line);border-radius:99px}
+  .list:hover::-webkit-scrollbar-thumb{background:var(--box)}
+  .task{
+    display:flex;align-items:flex-start;gap:4px;border-radius:12px;
+    transition:background .25s var(--ease),opacity .25s ease,transform .25s var(--ease);
+  }
+  .task:hover{background:var(--hover)}
+  /* le carré : on valide */
+  .toggle{
+    appearance:none;border:0;background:none;cursor:pointer;font:inherit;color:inherit;
+    display:flex;align-items:flex-start;flex:0 0 auto;
+    padding:6px 6px;border-radius:12px;
+  }
+  .toggle:active .box{transform:scale(.86)}
+  .box{
+    flex:0 0 auto;width:17px;height:17px;margin-top:1px;border-radius:6px;
+    border:1.5px solid var(--box);
+    color:#fff;position:relative;
+    display:grid;place-items:center;
+    transition:background .22s var(--ease),border-color .22s var(--ease),transform .18s var(--ease);
+  }
+  @media (prefers-color-scheme: dark){.box{color:#0d0e11}}
+  .toggle:hover .box{border-color:var(--accent)}
+  .box svg{width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round;
+    stroke-dasharray:26;stroke-dashoffset:26;transition:stroke-dashoffset .3s var(--ease) .04s}
+  /* le texte : on copie la ligne (sauf si elle est barrée) */
+  .txt{
+    flex:1;min-width:0;font-size:12.5px;line-height:1.45;word-break:break-word;position:relative;
+    text-align:left;padding:6px 5px;border-radius:10px;cursor:copy;outline:none;
+    text-decoration-line:line-through;
+    text-decoration-thickness:1.5px;
+    text-decoration-color:transparent;
+    transition:color .3s var(--ease),background .22s var(--ease),text-decoration-color .4s ease;
+  }
+  .txt:hover{background:var(--accent-soft)}
+  .txt:focus-visible{background:var(--accent-soft);outline:2px solid var(--accent);outline-offset:-2px}
+  .txt.copie{animation:copie .55s ease-out}
+  @keyframes copie{from{color:var(--accent)}}
+  /* la poignée : on glisse la ligne pour la déplacer */
+  .drag{
+    appearance:none;border:0;background:none;color:var(--muted);cursor:grab;
+    width:20px;height:24px;padding:0;border-radius:7px;flex:0 0 auto;margin-top:5px;
+    display:grid;place-items:center;opacity:.28;touch-action:none;
+    transition:opacity .2s ease,color .2s ease,background .2s ease;
+  }
+  .drag svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round}
+  .task:hover .drag{opacity:1}
+  .drag:hover{color:var(--accent);background:var(--accent-soft)}
+  .drag:active{cursor:grabbing}
+  .task.dragging{
+    background:var(--accent-soft);position:relative;z-index:3;user-select:none;
+    box-shadow:0 12px 26px -14px rgba(20,20,26,.55);
+  }
+  .task.dragging .drag{opacity:1;color:var(--accent)}
+  .task.done .box{background:var(--accent);border-color:var(--accent)}
+  .task.done .box svg{stroke-dashoffset:0}
+  .task.done .txt{color:var(--muted);text-decoration-color:currentColor;cursor:default}
+  .task.done .txt:hover{background:transparent}
+  .task.pop .box{animation:pop .42s var(--bounce)}
+  @keyframes pop{0%{transform:scale(1)}35%{transform:scale(.8)}100%{transform:scale(1)}}
+  .task.flash{animation:flash .7s ease-out}
+  @keyframes flash{0%{background:var(--accent-soft)}100%{background:transparent}}
+  .task.removing{opacity:0;transform:translateX(14px)}
+
+  .del{
+    appearance:none;border:0;background:none;cursor:pointer;color:var(--muted);
+    font:inherit;font-size:14px;line-height:1;width:24px;height:24px;border-radius:7px;
+    display:grid;place-items:center;flex:0 0 auto;margin-top:5px;
+    opacity:0;transform:scale(.8);pointer-events:none;
+    transition:opacity .2s ease,transform .2s var(--ease),color .2s ease,background .2s ease;
+  }
+  .task:hover .del,.del:focus-visible{opacity:1;transform:scale(1);pointer-events:auto}
+  .del:hover{color:var(--danger);background:var(--danger-soft)}
+
+  .empty{
+    text-align:center;color:var(--muted);font-size:11.5px;padding:16px 4px;list-style:none;
+    border:1px dashed var(--line);border-radius:12px;
+  }
+  .quick{
+    appearance:none;border:0;background:none;cursor:pointer;font:inherit;
+    font-size:11.5px;font-weight:600;color:var(--muted);
+    text-align:center;padding:8px 6px;margin-top:8px;border-radius:12px;
+    transition:color .22s ease,background .22s ease,transform .18s var(--ease);
+  }
+  .quick:hover{color:var(--accent);background:var(--accent-soft)}
+  .quick:active{transform:scale(.98)}
+  .quick-in{
+    appearance:none;border:0;border-bottom:1.5px solid var(--accent);background:none;color:var(--ink);
+    font:inherit;font-size:12.5px;padding:8px 4px;margin-top:8px;width:100%;outline:none;text-align:center;
+  }
+  .quick-in::placeholder{color:var(--muted)}
+
+  /* ---------------- mise en page plein écran ---------------- */
+  [hidden]{display:none !important}
+  main.wrap{flex:1;min-height:0;display:flex;flex-direction:column;padding-bottom:12px}
+  #panel-board{flex:1;min-height:0;display:flex;flex-direction:column}
+
+  /* ---------------- pied ---------------- */
+  .foot{
+    text-align:center;padding:9px 24px calc(11px + env(safe-area-inset-bottom, 0px));
+    border-top:1px solid var(--line);
+    font-size:10.5px;color:var(--muted);
+    display:flex;justify-content:center;align-items:center;gap:6px;flex-wrap:wrap;
+    background:var(--bg);
+  }
+  .foot button{
+    appearance:none;border:0;background:none;cursor:pointer;font:inherit;font-size:10.5px;color:var(--muted);
+    padding:4px 7px;border-radius:7px;transition:color .2s ease,background .2s ease;
+  }
+  .foot button:hover{color:var(--ink);background:var(--hover)}
+  .foot .sep{opacity:.45}
+  /* projets terminés, rangés dans le pied de page */
+  #fini{display:inline-flex;align-items:center;gap:5px;flex-wrap:wrap}
+  .foot .fin{
+    font-size:10.5px;font-weight:600;color:var(--accent);
+    padding:2px 7px;border-radius:99px;
+    animation:finIn .45s var(--bounce) both;
+  }
+  .foot .fin:hover{color:var(--accent);background:var(--accent-soft)}
+  .foot .fin.is-on{background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--accent)}
+  @keyframes finIn{from{opacity:0;transform:translateY(6px) scale(.85)}to{opacity:1;transform:none}}
+  .allgone{
+    flex:1;display:grid;place-items:center;
+    font-size:12px;color:var(--muted);text-align:center;margin:0;
+  }
+  .warn{color:var(--danger);font-weight:600}
+
+  /* ---------------- toast annuler ---------------- */
+  .toast{
+    position:fixed;left:50%;bottom:28px;transform:translate(-50%,20px);
+    display:flex;align-items:center;gap:14px;
+    background:var(--ink);color:var(--bg);
+    padding:10px 12px 10px 18px;border-radius:99px;font-size:12.5px;font-weight:500;
+    box-shadow:0 20px 40px -16px rgba(0,0,0,.5);
+    opacity:0;pointer-events:none;z-index:60;
+    transition:opacity .3s ease,transform .35s var(--ease);
+  }
+  .toast.on{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+  .toast button{
+    appearance:none;border:0;cursor:pointer;font:inherit;font-size:12.5px;font-weight:700;
+    color:var(--bg);background:var(--toast-btn);
+    padding:6px 13px;border-radius:99px;transition:background .2s ease;
+  }
+  .toast button:hover{background:var(--toast-btn-hi)}
+
+  /* ---------------- célébration ---------------- */
+  .celebrate{
+    position:fixed;inset:0;z-index:70;display:grid;place-items:center;
+    background:var(--veil);
+    backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+    animation:fade .4s ease both;cursor:pointer;
+  }
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  .celebrate[hidden]{display:none}
+  .cel-card{
+    text-align:center;padding:40px 54px;border-radius:30px;
+    background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow-hi);
+    animation:celIn .6s var(--bounce) both;
+  }
+  @keyframes celIn{from{opacity:0;transform:translateY(18px) scale(.94)}to{opacity:1;transform:none}}
+  .cel-kicker{margin:0;font-size:10.5px;font-weight:700;letter-spacing:.24em;text-transform:uppercase;color:var(--muted)}
+  .cel-title{margin:14px 0 0;font-size:clamp(30px,5vw,42px);font-weight:600;letter-spacing:-.03em}
+  .cel-title em{font-size:1.1em}
+  .cel-sub{margin:12px 0 0;font-size:13.5px;color:var(--ink-2)}
+  canvas.confetti{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:80}
+
+  /* ---------------- transférer mes tâches ---------------- */
+  .modale{
+    position:fixed;inset:0;z-index:90;display:grid;place-items:center;padding:18px;
+    background:var(--veil);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+    animation:fade .3s ease both;
+  }
+  .modale[hidden]{display:none}
+  .modale-boite{
+    width:min(560px,100%);max-height:86vh;overflow-y:auto;text-align:center;
+    background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow-hi);padding:22px 20px calc(18px + env(safe-area-inset-bottom, 0px));
+    animation:celIn .45s var(--bounce) both;
+  }
+  .modale-boite h2{margin:0 0 6px;font-size:15px;font-weight:600;letter-spacing:-.02em}
+  .modale-note{margin:0 0 16px;font-size:11.5px;line-height:1.6;color:var(--muted)}
+  .modale-actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:12px}
+  .modale-actions button{
+    appearance:none;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);
+    font:inherit;font-size:11.5px;font-weight:600;padding:9px 15px;border-radius:11px;cursor:pointer;
+    transition:border-color .2s ease,color .2s ease,background .2s ease,transform .16s var(--ease);
+  }
+  .modale-actions button:hover{border-color:var(--accent);color:var(--accent);transform:translateY(-1px)}
+  .modale-actions button:active{transform:translateY(0) scale(.98)}
+  .modale textarea{
+    appearance:none;resize:vertical;width:100%;min-height:104px;text-align:left;margin:0 0 12px;
+    background:var(--hover);color:var(--ink);
+    border:1.5px solid var(--line);border-radius:12px;padding:10px 11px;outline:none;
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    font-size:11px;line-height:1.5;
+    transition:border-color .25s ease,background .25s ease;
+  }
+  .modale textarea:focus{border-color:var(--accent);background:var(--surface)}
+  .modale textarea::placeholder{color:var(--muted)}
+  .modale-fermer{
+    appearance:none;border:0;background:none;cursor:pointer;font:inherit;font-size:11.5px;color:var(--muted);
+    text-decoration:underline;text-underline-offset:3px;
+  }
+  .modale-fermer:hover{color:var(--ink)}
+  .modale-sep{height:1px;background:var(--line);margin:20px 0 18px}
+  .modale-champs{display:grid;gap:8px;margin:0 0 12px;text-align:left}
+  .modale-champs label{
+    display:grid;gap:4px;font-size:10px;font-weight:600;letter-spacing:.09em;
+    text-transform:uppercase;color:var(--muted);
+  }
+  .modale-champs input{
+    appearance:none;width:100%;background:var(--hover);color:var(--ink);
+    border:1.5px solid var(--line);border-radius:11px;padding:9px 11px;outline:none;
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11.5px;
+    transition:border-color .25s ease,background .25s ease;
+  }
+  .modale-champs input:focus{border-color:var(--accent);background:var(--surface)}
+  .modale-etat{margin:2px 0 0;font-size:11px;color:var(--muted)}
+  .modale-etat.ok{color:var(--accent);font-weight:600}
+  .modale-etat.ko{color:var(--danger);font-weight:600}
+  #sy-restaurer{margin-top:12px}
+
+  /* ---------------- téléphone : pas de survol ---------------- */
+  @media (hover: none){
+    .del{opacity:.5;pointer-events:auto}
+    .drag{opacity:.45}
+    .txt{cursor:default}
+    .col:hover{transform:none;box-shadow:var(--shadow)}
+    .modale-actions button:hover{border-color:var(--line);color:var(--ink-2);transform:none}
+  }
+
+  /* ---------------- adaptatif ---------------- */
+  @media (max-width:900px){
+    body{display:block;overflow:auto;height:auto;min-height:100%}
+    .topbar{grid-template-columns:minmax(0,1fr);justify-items:center;row-gap:9px;padding:12px 16px 10px}
+    .meter{grid-column:1}
+    main.wrap{padding-bottom:20px}
+    #panel-board{display:block}
+    .board{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .col{min-height:280px}
+    .list{overflow:visible}
+  }
+  @media (max-width:720px){
+    .wrap{padding:0 14px}
+    .board{grid-template-columns:minmax(0,1fr)}
+    .col{min-height:0}
+    .cel-card{padding:32px 26px}
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{animation-duration:.001ms !important;transition-duration:.001ms !important}
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="meter">
+    <span><b id="doneAll">0</b>/<b id="totalAll">0</b> faites</span>
+    <div class="global" role="progressbar" aria-label="Progression générale"><i id="globalBar"></i></div>
+    <span id="pctAll">0 %</span>
+  </div>
+</div>
+
+<main class="wrap">
+  <section class="panel" id="panel-board">
+    <div class="board" id="board"></div>
+    <p class="allgone" id="allgone" hidden>Les quatre projets sont terminés. Clique sur un projet en bas de page pour le rouvrir.</p>
+  </section>
+</main>
+
+<footer class="foot">
+  <button id="demain" type="button">Transférer à demain</button>
+  <span class="sep">·</span>
+  <button id="reprendre" type="button" hidden>Reprendre les tâches de demain</button>
+  <span id="reprendre-sep" class="sep" hidden>·</span>
+  <button id="purge" type="button">Vider les tâches barrées</button>
+  <span class="sep">·</span>
+  <button id="transfert-btn" type="button">Transfert / Synchro</button>
+  <span id="fini"></span>
+  <span id="storageNote" hidden></span>
+</footer>
+
+<div class="modale" id="transfert" hidden>
+  <div class="modale-boite">
+    <h2>Transférer mes tâches</h2>
+    <p class="modale-note">
+      Chaque appareil garde ses propres tâches. Pour les recopier d'un appareil à l'autre :
+      <b>1)</b> copie les données ici, <b>2)</b> envoie-les toi (mail, WhatsApp…),
+      <b>3)</b> colle-les dans la case sur l'autre appareil et importe.
+    </p>
+    <div class="modale-actions">
+      <button id="tr-copier" type="button">Copier mes données</button>
+      <button id="tr-fichier" type="button">Télécharger un fichier</button>
+    </div>
+    <textarea id="tr-zone" placeholder="Colle ici les données copiées depuis l'autre appareil…" spellcheck="false"></textarea>
+    <div class="modale-actions">
+      <button id="tr-importer" type="button">Importer ce qui est collé</button>
+      <button id="tr-ouvrir" type="button">Choisir un fichier…</button>
+    </div>
+    <button class="modale-fermer" id="tr-fermer" type="button">Fermer</button>
+    <input type="file" id="tr-input" accept="application/json,.json,text/plain" hidden>
+
+    <div class="modale-sep"></div>
+    <h2>Synchronisation automatique</h2>
+    <p class="modale-note">
+      Pour que ton PC et ton téléphone aient <b>toujours les mêmes tâches</b>, sans rien faire.
+      Il faut un espace de stockage privé gratuit (jsonbin.io) : crée un compte, crée un « bin »,
+      puis colle ici son identifiant et ta clé. Ces deux valeurs restent sur cet appareil,
+      elles ne sont jamais dans le fichier du site. À faire une fois par appareil.
+    </p>
+    <div class="modale-champs">
+      <label for="sy-id">Identifiant du stockage (Bin ID)
+        <input id="sy-id" type="text" spellcheck="false" autocomplete="off" placeholder="ex. 65f2c1a3e4b0…">
+      </label>
+      <label for="sy-cle">Clé secrète (Master Key)
+        <input id="sy-cle" type="password" spellcheck="false" autocomplete="off" placeholder="ex. $2a$10$…">
+      </label>
+    </div>
+    <div class="modale-actions">
+      <button id="sy-activer" type="button">Activer la synchro</button>
+      <button id="sy-maintenant" type="button">Synchroniser maintenant</button>
+      <button id="sy-stop" type="button">Désactiver</button>
+    </div>
+    <p class="modale-etat" id="sy-etat">Non configurée</p>
+    <button class="modale-fermer" id="sy-restaurer" type="button" hidden>Restaurer la version d'avant la dernière synchro</button>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite">
+  <span id="toastMsg">Tâche supprimée</span>
+  <button id="undo" type="button">Annuler</button>
+</div>
+
+<div class="celebrate" id="celebrate" hidden>
+  <div class="cel-card">
+    <p class="cel-kicker">4 / 4 projets</p>
+    <p class="cel-title">Tout est <em class="serif">fait</em>.</p>
+    <p class="cel-sub">Les quatre projets sont terminés. Clique pour fermer.</p>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ------------------------------------------------------------------
+     DONNÉES — clé et format inchangés : les tâches déjà enregistrées
+     dans ce navigateur sont relues telles quelles. Rien n'est écrasé
+     tant que le chargement ne s'est pas fait correctement.
+  ------------------------------------------------------------------ */
+  var KEY = "taches.4projets.v1";
+  var DEFAULT_NAMES = ["Projet 1", "Projet 2", "Projet 3", "Projet 4"];
+  var storageOK = true;
+  var loadedOK = true;
+
+  var board     = document.getElementById("board");
+  var doneAllEl = document.getElementById("doneAll");
+  var totalAllEl= document.getElementById("totalAll");
+  var pctAllEl  = document.getElementById("pctAll");
+  var globalBar = document.getElementById("globalBar");
+  var storageNote = document.getElementById("storageNote");
+  var allGone   = document.getElementById("allgone");
+  var finiHost  = document.getElementById("fini");
+  var toast     = document.getElementById("toast");
+  var toastMsg  = document.getElementById("toastMsg");
+  var celebrate = document.getElementById("celebrate");
+
+  var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function uid(){ return Math.random().toString(36).slice(2, 10); }
+  function blank(){ return { projects: DEFAULT_NAMES.map(function(n){ return { name: n, tasks: [], fini: false }; }), demain: [], updatedAt: 0 }; }
+
+  /* la 5e liste : ce qui a été gardé pour demain, avec son projet d'origine */
+  function normaliserDemain(brut){
+    if (!Array.isArray(brut)) return [];
+    return brut.filter(function(d){ return d && typeof d.text === "string" && d.text.trim(); })
+               .map(function(d){
+                 return { id: d.id || uid(), text: d.text, projet: Number(d.projet) || 0 };
+               });
+  }
+
+  /* remet des données brutes au bon format (utilisé au chargement et à la synchro) */
+  function normaliserProjets(brut){
+    return DEFAULT_NAMES.map(function(defName, i){
+      var src = (brut && brut[i]) || {};
+      var name = (typeof src.name === "string" && src.name.trim()) ? src.name : defName;
+      var tasks = Array.isArray(src.tasks) ? src.tasks : [];
+      return {
+        name: name,
+        tasks: tasks.filter(function(t){ return t && typeof t.text === "string" && t.text.trim(); })
+                    .map(function(t){ return { id: t.id || uid(), text: t.text, done: !!t.done, doneAt: t.doneAt || 0 }; }),
+        fini: !!src.fini
+      };
+    });
+  }
+
+  function load(){
+    var raw;
+    try { raw = localStorage.getItem(KEY); }
+    catch (e) { storageOK = false; return blank(); }
+    if (!raw) return blank();
+
+    var data;
+    try { data = JSON.parse(raw); }
+    catch (e) { loadedOK = false; return blank(); }
+    if (!data || !Array.isArray(data.projects)) { loadedOK = false; return blank(); }
+
+    return {
+      projects: normaliserProjets(data.projects),
+      demain: normaliserDemain(data.demain),
+      updatedAt: Number(data.updatedAt) || 0
+    };
+  }
+
+  var state = load();
+
+  function save(garderDate){
+    if (!loadedOK) return;             /* données illisibles : on n'écrit rien */
+    if (!garderDate) state.updatedAt = Date.now();
+    try { localStorage.setItem(KEY, JSON.stringify(state)); }
+    catch (e) {
+      if (storageOK) {
+        storageOK = false;
+        storageNote.hidden = false;
+        storageNote.textContent = "Sauvegarde indisponible dans ce navigateur.";
+        storageNote.className = "warn";
+      }
+    }
+    if (!garderDate && typeof planifierEnvoi === "function") planifierEnvoi();
+  }
+
+  function stats(i){
+    var tasks = state.projects[i].tasks, done = 0;
+    for (var k = 0; k < tasks.length; k++) if (tasks[k].done) done++;
+    return { done: done, total: tasks.length, pct: tasks.length ? (done / tasks.length) * 100 : 0 };
+  }
+
+  /* ------------------------------------------------------------------
+     ANIMATION DES CHIFFRES
+  ------------------------------------------------------------------ */
+  function tween(el, from, to, dur, suffix){
+    if (reduceMotion || dur <= 0 || from === to) { el.textContent = Math.round(to) + (suffix || ""); return; }
+    var t0 = performance.now();
+    (function step(t){
+      var p = Math.min(1, (t - t0) / dur);
+      var e = 1 - Math.pow(1 - p, 3);
+      el.textContent = Math.round(from + (to - from) * e) + (suffix || "");
+      if (p < 1) requestAnimationFrame(step);
+    })(t0);
+  }
+
+  var shownPct = [0, 0, 0, 0], shownDone = 0, shownTotal = 0, firstPaint = true;
+
+  /* ---- projets terminés : rangés en bas, réaffichables d'un clic ---- */
+  var revealed = [false, false, false, false];   /* projet terminé remis à l'écran */
+  var archTimer = [null, null, null, null];
+
+  function colOf(i){ return board.querySelector('.col[data-i="' + i + '"]'); }
+  function isDone(i){ var s = stats(i); return s.total > 0 && s.done === s.total; }
+  /* fini = tout est coché, ou le projet a été terminé puis vidé : il reste en bas */
+  function estFini(i){ return isDone(i) || !!state.projects[i].fini; }
+  function isArchived(i){ return estFini(i) && !revealed[i]; }
+
+  var chipsSig = "";
+  function renderChips(){
+    var sig = state.projects.map(function(p, i){
+      return estFini(i) ? i + ":" + (revealed[i] ? 1 : 0) + ":" + p.name : "";
+    }).join("|");
+    if (sig === chipsSig) return;
+    chipsSig = sig;
+
+    finiHost.innerHTML = "";
+    state.projects.forEach(function(p, i){
+      if (!estFini(i)) return;
+      var sep = document.createElement("span");
+      sep.className = "sep";
+      sep.textContent = "·";
+      finiHost.appendChild(sep);
+
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "fin c" + i + (revealed[i] ? " is-on" : "");
+      b.dataset.i = i;
+      b.setAttribute("aria-pressed", revealed[i] ? "true" : "false");
+      b.textContent = p.name + " fini";
+      b.title = revealed[i] ? "Ranger « " + p.name + " » en bas" : "Afficher « " + p.name + " »";
+      finiHost.appendChild(b);
+    });
+  }
+
+  function updateStats(){
+    var doneAll = 0, totalAll = 0, flagChange = false;
+    state.projects.forEach(function(p, i){
+      var s = stats(i);
+      doneAll += s.done; totalAll += s.total;
+
+      var complet = s.total > 0 && s.done === s.total;
+      if (complet) {
+        if (!p.fini) { p.fini = true; flagChange = true; }   /* terminé : il reste en bas, même vidé ensuite */
+      } else {
+        revealed[i] = false;
+        clearTimeout(archTimer[i]); archTimer[i] = null;
+      }
+
+      var col = colOf(i);
+      if (col) {
+        var pctEl = col.querySelector(".pct");
+        tween(pctEl, firstPaint ? 0 : shownPct[i], s.pct, firstPaint ? 900 : 650, " %");
+        shownPct[i] = s.pct;
+        col.querySelector(".count").textContent = s.done + "/" + s.total;
+        col.querySelector(".bar i").style.width = s.pct + "%";
+        col.classList.toggle("is-done", complet);
+
+        /* projet terminé : on le laisse fêter sa fin, puis il descend en bas */
+        if (complet && !revealed[i] && !archTimer[i]) {
+          archTimer[i] = setTimeout(function(){
+            archTimer[i] = null;
+            var c = colOf(i);
+            if (!c) return;
+            c.classList.add("leaving");
+            setTimeout(function(){ renderBoard(); updateStats(); }, reduceMotion ? 0 : 300);
+          }, reduceMotion ? 0 : 1000);
+        }
+      }
+    });
+
+    var pctAll = totalAll ? (doneAll / totalAll) * 100 : 0;
+    tween(doneAllEl,  firstPaint ? 0 : shownDone,  doneAll,  firstPaint ? 900 : 650);
+    tween(totalAllEl, firstPaint ? 0 : shownTotal, totalAll, firstPaint ? 900 : 650);
+    tween(pctAllEl,   firstPaint ? 0 : Math.round(shownTotal ? (shownDone / shownTotal) * 100 : 0), Math.round(pctAll), firstPaint ? 900 : 650, " %");
+    shownDone = doneAll; shownTotal = totalAll;
+    globalBar.style.width = pctAll + "%";
+    globalBar.parentNode.setAttribute("aria-valuenow", Math.round(pctAll));
+
+    if (firstPaint) firstPaint = false;
+    else if (totalAll > 0 && doneAll === totalAll) cheer();
+    else if (doneAll < totalAll) celebrated = false;
+
+    if (flagChange) save();
+    renderChips();
+  }
+
+  /* ------------------------------------------------------------------
+     RENDU
+  ------------------------------------------------------------------ */
+  /* Ordre d'affichage : les tâches à faire, puis les barrées.
+     Dans le groupe barré, la dernière cochée passe en PREMIÈRE position. */
+  function sortedTasks(i){
+    return state.projects[i].tasks
+      .map(function(t, k){ return { t: t, k: k }; })
+      .sort(function(a, b){
+        var da = a.t.done ? 1 : 0, db = b.t.done ? 1 : 0;
+        if (da !== db) return da - db;
+        if (da === 1) {
+          var ta = a.t.doneAt || 0, tb = b.t.doneAt || 0;
+          if (ta !== tb) return tb - ta;
+        }
+        return a.k - b.k;
+      })
+      .map(function(x){ return x.t; });
+  }
+
+  function renderList(i){
+    var col = colOf(i);
+    if (!col) return;
+    var ul = col.querySelector(".list");
+    var tasks = state.projects[i].tasks;
+    ul.innerHTML = "";
+
+    if (!tasks.length) {
+      var ph = document.createElement("li");
+      ph.className = "empty";
+      ph.textContent = "Rien ici pour l'instant";
+      ul.appendChild(ph);
+      return;
+    }
+
+    sortedTasks(i).forEach(function(t){
+      var li = document.createElement("li");
+      li.className = "task" + (t.done ? " done" : "");
+      li.dataset.id = t.id;
+
+      var toggle = document.createElement("button");
+      toggle.type = "button";
+      toggle.className = "toggle";
+      toggle.setAttribute("aria-pressed", t.done ? "true" : "false");
+      toggle.setAttribute("aria-label", t.done ? "Décocher" : "Valider");
+      toggle.title = t.done ? "Décocher" : "Valider";
+      toggle.innerHTML = '<span class="box"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg></span>';
+
+      var txt = document.createElement("span");
+      txt.className = "txt";
+      txt.textContent = t.text;
+      if (!t.done) {                        /* une tâche barrée ne se copie pas */
+        txt.title = "Cliquer pour copier la ligne";
+        txt.tabIndex = 0;
+        txt.setAttribute("role", "button");
+        txt.setAttribute("aria-label", "Copier : " + t.text);
+      }
+
+      var del = document.createElement("button");
+      del.type = "button";
+      del.className = "del";
+      del.title = "Supprimer";
+      del.setAttribute("aria-label", "Supprimer la tâche");
+      del.textContent = "\u00d7";
+
+      var drag = document.createElement("button");
+      drag.type = "button";
+      drag.className = "drag";
+      drag.title = "Glisser pour déplacer";
+      drag.setAttribute("aria-label", "Déplacer la tâche (glisser)");
+      drag.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14M5 12h14M5 16h14"/></svg>';
+
+      li.appendChild(toggle);
+      li.appendChild(txt);
+      li.appendChild(drag);
+      li.appendChild(del);
+      ul.appendChild(li);
+    });
+  }
+
+  function makeColumn(i){
+    var col = document.createElement("section");
+    col.className = "col c" + i;
+    col.dataset.i = i;
+
+    var head = document.createElement("div");
+    head.className = "col-h";
+
+    var name = document.createElement("h2");
+    name.className = "name";
+    name.contentEditable = "true";
+    name.spellcheck = false;
+    name.title = "Cliquer pour renommer";
+    name.textContent = state.projects[i].name;
+
+    var badge = document.createElement("span");
+    badge.className = "badge";
+    badge.textContent = "Terminé";
+    head.appendChild(name);
+    head.appendChild(badge);
+
+    var stat = document.createElement("div");
+    stat.className = "col-stat";
+    stat.innerHTML = '<span class="pct">0 %</span><span class="count">0/0</span>';
+
+    var copyAll = document.createElement("button");
+    copyAll.type = "button";
+    copyAll.className = "copyall";
+    copyAll.title = "Copier les tâches à faire";
+    copyAll.setAttribute("aria-label", "Copier les tâches à faire de ce projet");
+    copyAll.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6.5A2.5 2.5 0 0 1 7.5 4H15"/></svg>';
+    stat.appendChild(copyAll);
+
+    var bar = document.createElement("div");
+    bar.className = "bar";
+    bar.appendChild(document.createElement("i"));
+
+    var ul = document.createElement("ul");
+    ul.className = "list";
+
+    var quick = document.createElement("button");
+    quick.type = "button";
+    quick.className = "quick";
+    quick.textContent = "+ Ajouter une tâche";
+
+    col.appendChild(head);
+    col.appendChild(stat);
+    col.appendChild(bar);
+    col.appendChild(ul);
+    col.appendChild(quick);
+    return col;
+  }
+
+  function renderBoard(){
+    board.innerHTML = "";
+    var visible = [];
+    state.projects.forEach(function(_, i){ if (!isArchived(i)) visible.push(i); });
+
+    visible.forEach(function(i){
+      board.appendChild(makeColumn(i));
+      renderList(i);
+    });
+
+    board.style.setProperty("--cols", Math.max(1, visible.length));
+    board.hidden = visible.length === 0;
+    allGone.hidden = visible.length !== 0;
+    renderChips();
+  }
+
+  /* ------------------------------------------------------------------
+     TRANSFÉRER À DEMAIN (5e liste, non visible sur le tableau)
+  ------------------------------------------------------------------ */
+  function transfererADemain(){
+    var n = 0;
+    state.projects.forEach(function(p, i){
+      p.tasks = p.tasks.filter(function(t){
+        if (t.done) return true;                        /* ce qui est fait reste sur le tableau */
+        state.demain.push({ id: t.id, text: t.text, projet: i });
+        n++;
+        return false;
+      });
+    });
+    if (!n) { showToast("Aucune tâche en attente \u00e0 transf\u00e9rer", false, 2400); return; }
+    save();
+    renderBoard();
+    updateStats();
+    montrerReprendre();
+    showToast(n + " t\u00e2che" + (n > 1 ? "s" : "") + " gard\u00e9e" + (n > 1 ? "s" : "") + " pour demain", false, 3200);
+  }
+
+  function reprendreDemain(){
+    if (!state.demain.length) return;
+    var n = 0;
+    state.demain.forEach(function(d){
+      var i = Number(d.projet);
+      if (!(i >= 0 && i < state.projects.length)) i = 0;
+      state.projects[i].tasks.push({ id: d.id || uid(), text: d.text, done: false, doneAt: 0 });
+      state.projects[i].fini = false;
+      n++;
+    });
+    state.demain = [];
+    save();
+    renderBoard();
+    updateStats();
+    montrerReprendre();
+    showToast(n + " t\u00e2che" + (n > 1 ? "s" : "") + " revenue" + (n > 1 ? "s" : "") + " dans les projets", false, 3200);
+  }
+
+  function montrerReprendre(){
+    var n = state.demain ? state.demain.length : 0;
+    var b = document.getElementById("reprendre");
+    var s = document.getElementById("reprendre-sep");
+    if (!b) return;
+    b.hidden = !n;
+    if (s) s.hidden = !n;
+    b.textContent = "Reprendre les " + n + " t\u00e2che" + (n > 1 ? "s" : "") + " de demain";
+  }
+
+  /* ------------------------------------------------------------------
+     CÉLÉBRATION
+  ------------------------------------------------------------------ */
+  var celebrated = false;
+
+  function cheer(){
+    if (celebrated) return;
+    celebrated = true;
+    celebrate.hidden = false;
+    if (!reduceMotion) confetti();
+    clearTimeout(cheer._t);
+    cheer._t = setTimeout(closeCheer, 5200);
+  }
+  function closeCheer(){
+    celebrate.hidden = true;
+    clearTimeout(cheer._t);
+  }
+  celebrate.addEventListener("click", closeCheer);
+
+  function confetti(){
+    var c = document.createElement("canvas");
+    c.className = "confetti";
+    document.body.appendChild(c);
+    var ctx = c.getContext("2d");
+    var dpr = Math.min(2, window.devicePixelRatio || 1);
+    c.width = window.innerWidth * dpr;
+    c.height = window.innerHeight * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    var colors = ["#137a5f", "#3b52c4", "#a96a12", "#a03464", "#15151b", "#3ea98a"];
+    var ps = [];
+    for (var k = 0; k < 130; k++) {
+      ps.push({
+        x: window.innerWidth * (0.5 + (Math.random() - 0.5) * 0.85),
+        y: window.innerHeight * 0.44 + (Math.random() - 0.5) * 90,
+        vx: (Math.random() - 0.5) * 8,
+        vy: -7 - Math.random() * 8,
+        g: 0.22 + Math.random() * 0.12,
+        s: 4 + Math.random() * 7,
+        r: Math.random() * Math.PI,
+        vr: (Math.random() - 0.5) * 0.34,
+        col: colors[k % colors.length]
+      });
+    }
+    var t0 = performance.now();
+    (function loop(t){
+      var el = (t - t0) / 1000;
+      ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+      var alpha = el > 1.5 ? Math.max(0, 1 - (el - 1.5) / 1) : 1;
+      for (var k = 0; k < ps.length; k++) {
+        var p = ps[k];
+        p.vy += p.g; p.x += p.vx; p.y += p.vy; p.vx *= 0.995; p.r += p.vr;
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.r);
+        ctx.fillStyle = p.col;
+        ctx.fillRect(-p.s / 2, -p.s / 2, p.s, p.s * 0.62);
+        ctx.restore();
+      }
+      if (el < 2.5) requestAnimationFrame(loop);
+      else if (c.parentNode) c.parentNode.removeChild(c);
+    })(t0);
+  }
+
+  /* ------------------------------------------------------------------
+     ANNULER UNE SUPPRESSION
+  ------------------------------------------------------------------ */
+  var lastDeleted = [];                 /* { i, index, task } — annulable */
+  var undoBtn = document.getElementById("undo");
+
+  function showToast(msg, canUndo, ms){
+    toastMsg.textContent = msg;
+    undoBtn.hidden = !canUndo;
+    toast.classList.add("on");
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(hideToast, ms || 6000);
+  }
+  function hideToast(){ toast.classList.remove("on"); }
+
+  undoBtn.addEventListener("click", function(){
+    if (!lastDeleted.length) return;
+    lastDeleted.slice().sort(function(a, b){ return a.index - b.index; })
+      .forEach(function(d){ state.projects[d.i].tasks.splice(d.index, 0, d.task); });
+    lastDeleted = [];
+    save();
+    renderBoard();
+    updateStats();
+    hideToast();
+  });
+
+  /* Vider uniquement les tâches barrées (annulable) */
+  function purgeDone(){
+    var removed = [];
+    var etaitComplet = state.projects.map(function(_, i){ return isDone(i); });
+    state.projects.forEach(function(p, i){
+      p.tasks.forEach(function(t, k){ if (t.done) removed.push({ i: i, index: k, task: t }); });
+    });
+    if (!removed.length) {
+      /* si une annulation est encore possible, on la laisse en place */
+      if (!lastDeleted.length) showToast("Aucune tâche barr\u00e9e \u00e0 supprimer", false, 2400);
+      return;
+    }
+
+    /* on retire de la fin vers le début pour ne pas décaler les index */
+    var parProjet = {};
+    removed.forEach(function(d){ (parProjet[d.i] = parProjet[d.i] || []).push(d.index); });
+    Object.keys(parProjet).forEach(function(i){
+      parProjet[i].sort(function(a, b){ return b - a; })
+        .forEach(function(k){ state.projects[i].tasks.splice(k, 1); });
+    });
+
+    lastDeleted = removed;
+    /* un projet qui était terminé juste avant de vider reste en bas, même s'il n'a plus rien */
+    state.projects.forEach(function(p, i){
+      if (etaitComplet[i] && !p.tasks.length) p.fini = true;
+    });
+    save();
+    renderBoard();
+    updateStats();
+    var n = removed.length;
+    showToast(n + " tâche" + (n > 1 ? "s" : "") + " barr\u00e9e" + (n > 1 ? "s" : "") +
+              " supprim\u00e9e" + (n > 1 ? "s" : ""), true, 10000);
+  }
+  document.getElementById("purge").addEventListener("click", purgeDone);
+
+  /* ------------------------------------------------------------------
+     COPIER UNE LIGNE
+  ------------------------------------------------------------------ */
+  function copyText(text, done){
+    function fallback(){
+      try {
+        var ta = document.createElement("textarea");
+        ta.value = text;
+        ta.setAttribute("readonly", "");
+        ta.style.position = "fixed";
+        ta.style.top = "-1000px";
+        document.body.appendChild(ta);
+        ta.select();
+        var ok = document.execCommand("copy");
+        document.body.removeChild(ta);
+        done(!!ok);
+      } catch (e) { done(false); }
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function(){ done(true); }, fallback);
+    } else {
+      fallback();
+    }
+  }
+
+  function copyLine(txt){
+    var text = txt.textContent;
+    copyText(text, function(ok){
+      txt.classList.remove("copie");
+      void txt.offsetWidth;
+      txt.classList.add("copie");
+      var court = text.length > 30 ? text.slice(0, 30) + "\u2026" : text;
+      showToast(ok ? "Copi\u00e9 : \u00ab " + court + " \u00bb" : "Copie impossible dans ce navigateur", false, 2400);
+    });
+  }
+
+  /* copier toutes les tâches à faire d'un projet */
+  function copyTodo(i, btn){
+    var restantes = state.projects[i].tasks.filter(function(t){ return !t.done; });
+    if (!restantes.length) {
+      showToast("Aucune tâche \u00e0 faire dans ce projet", false, 2600);
+      return;
+    }
+    var texte = restantes.map(function(t){ return t.text; }).join("\n");
+    var n = restantes.length;
+
+    copyText(texte, function(ok){
+      if (ok && btn) {
+        btn.classList.remove("copie");
+        void btn.offsetWidth;
+        btn.classList.add("copie");
+      }
+      showToast(ok
+        ? n + " t\u00e2che" + (n > 1 ? "s" : "") + " \u00e0 faire copi\u00e9e" + (n > 1 ? "s" : "")
+        : "Copie impossible dans ce navigateur", false, 2600);
+    });
+  }
+
+  /* ------------------------------------------------------------------
+     INTERACTIONS
+  ------------------------------------------------------------------ */
+  board.addEventListener("click", function(ev){
+    var col = ev.target.closest(".col");
+    if (!col) return;
+    var i = Number(col.dataset.i);
+
+    var cpall = ev.target.closest(".copyall");
+    if (cpall) { copyTodo(i, cpall); return; }
+
+    var tick = ev.target.closest(".toggle");
+    if (tick) {
+      var li = tick.closest(".task");
+      var id = li.dataset.id;
+      var nowDone = false;
+      state.projects[i].tasks.forEach(function(t){
+        if (t.id !== id) return;
+        t.done = !t.done;
+        t.doneAt = t.done ? Date.now() : 0;
+        if (!t.done) state.projects[i].fini = false;    /* décoché : le projet n'est plus fini */
+        nowDone = t.done;
+        li.classList.toggle("done", t.done);
+        tick.setAttribute("aria-pressed", t.done ? "true" : "false");
+        if (t.done) {
+          li.classList.remove("pop", "flash");
+          void li.offsetWidth;                       /* relance l'animation */
+          li.classList.add("pop", "flash");
+        }
+      });
+      save();
+      updateStats();
+      moveTask(i, li, nowDone);
+      return;
+    }
+
+    if (ev.target.closest(".del")) return;            /* géré par le 2e écouteur */
+
+    var txt = ev.target.closest(".txt");
+    if (txt) {
+      if (txt.closest(".task").classList.contains("done")) return;   /* barrée : rien à copier */
+      var sel = window.getSelection ? String(window.getSelection()) : "";
+      if (sel.trim()) return;                         /* du texte est sélectionné : on ne copie pas */
+      copyLine(txt);
+      return;
+    }
+
+    var quick = ev.target.closest(".quick");
+    if (quick) openQuick(col, i);
+  });
+
+  board.addEventListener("click", function(ev){
+    var del = ev.target.closest(".del");
+    if (!del) return;
+    var li = del.closest(".task");
+    if (!li || li.classList.contains("removing")) return;
+    var i = Number(del.closest(".col").dataset.i);
+    var id = li.dataset.id;
+    var index = -1, task = null;
+
+    state.projects[i].tasks.forEach(function(t, k){
+      if (t.id === id) { index = k; task = t; }
+    });
+    if (index < 0) return;
+
+    if (reduceMotion) {
+      remove();
+    } else {
+      li.style.transition = "height .26s cubic-bezier(.22,.68,0,1), opacity .2s ease, transform .26s cubic-bezier(.22,.68,0,1)";
+      li.style.overflow = "hidden";
+      li.style.height = li.offsetHeight + "px";
+      void li.offsetWidth;                     /* fige la hauteur de départ */
+      li.classList.add("removing");
+      li.style.height = "0px";
+      setTimeout(remove, 250);
+    }
+
+    function remove(){
+      state.projects[i].tasks = state.projects[i].tasks.filter(function(t){ return t.id !== id; });
+      lastDeleted = [{ i: i, index: index, task: task }];
+      save();
+      renderList(i);
+      updateStats();
+      showToast(task.text.length > 26 ? "Tâche supprimée" : "\u00ab " + task.text + " \u00bb supprimée", true);
+    }
+  });
+
+  /* Mesure la position de chaque ligne, puis rejoue le déplacement en douceur
+     (technique FLIP : on mesure avant, on déplace, on ré-anime). */
+  function positionsDe(ul){
+    var p = {};
+    Array.prototype.forEach.call(ul.children, function(el){
+      if (el.dataset && el.dataset.id) p[el.dataset.id] = el.getBoundingClientRect().top;
+    });
+    return p;
+  }
+
+  function animerDeplacement(ul, avant, ms){
+    if (reduceMotion) return;
+    var duree = ms || 420;
+    Array.prototype.forEach.call(ul.children, function(el){
+      var b = avant[el.dataset.id];
+      if (b === undefined) return;
+      var d = b - el.getBoundingClientRect().top;
+      if (!d) return;
+      el.style.transition = "none";
+      el.style.transform = "translateY(" + d + "px)";
+      void el.offsetHeight;                               /* fige la position de départ */
+      requestAnimationFrame(function(){
+        el.style.transition = "transform " + duree + "ms cubic-bezier(.22,.68,0,1)";
+        el.style.transform = "";
+        setTimeout(function(){ el.style.transition = ""; }, duree + 60);
+      });
+    });
+  }
+
+  function moveTask(i, li, goingDown){
+    var ul = li.parentNode;
+    if (!ul) return;
+    var delay = (reduceMotion || !goingDown) ? 0 : 300;   /* on laisse la coche se dessiner */
+
+    setTimeout(function(){
+      if (!ul.contains(li)) return;                       /* la liste a été reconstruite entre-temps */
+      var avant = positionsDe(ul);
+
+      sortedTasks(i).forEach(function(t){
+        var el = null;
+        Array.prototype.forEach.call(ul.children, function(c){
+          if (c.dataset && c.dataset.id === t.id) el = c;
+        });
+        if (el) ul.appendChild(el);
+      });
+
+      animerDeplacement(ul, avant, 420);
+    }, delay);
+  }
+
+  /* ------------------------------------------------------------------
+     GLISSER-DÉPOSER : changer l'ordre des tâches
+  ------------------------------------------------------------------ */
+  /* Enregistre l'ordre affiché, sans jamais perdre une tâche. */
+  function dropOrdre(i, ul){
+    var parId = {};
+    state.projects[i].tasks.forEach(function(t){ parId[t.id] = t; });
+
+    var nouveau = [];
+    Array.prototype.forEach.call(ul.children, function(el){
+      var t = (el.dataset && el.dataset.id) ? parId[el.dataset.id] : null;
+      if (t) { nouveau.push(t); delete parId[t.id]; }
+    });
+    /* filet de sécurité : une tâche absente de l'affichage est rajoutée, jamais supprimée */
+    state.projects[i].tasks.forEach(function(t){ if (parId[t.id]) nouveau.push(t); });
+
+    /* l'ordre choisi pour les barrées est reproduit par leur marqueur de temps */
+    var faites = nouveau.filter(function(t){ return t.done; });
+    var marques = faites.map(function(t){ return t.doneAt || 0; }).sort(function(a, b){ return b - a; });
+    faites.forEach(function(t, k){ t.doneAt = marques[k] || (marques.length - k); });
+
+    state.projects[i].tasks = nouveau;
+  }
+
+  board.addEventListener("pointerdown", function(ev){
+    var poignee = ev.target.closest ? ev.target.closest(".drag") : null;
+    if (!poignee || ev.button !== 0) return;
+
+    var li = poignee.closest(".task");
+    var ul = li && li.parentNode;
+    var col = poignee.closest(".col");
+    if (!li || !ul || !col) return;
+
+    var i = Number(col.dataset.i);
+    var departY = ev.clientY;
+    var bouge = false;
+    ev.preventDefault();
+    try { poignee.setPointerCapture(ev.pointerId); } catch (e) {}
+
+    var estFait = li.classList.contains("done");
+
+    function cibles(){
+      var liste = [];
+      Array.prototype.forEach.call(ul.children, function(el){
+        if (el !== li && el.dataset && el.dataset.id &&
+            el.classList.contains("done") === estFait) liste.push(el);
+      });
+      return liste;
+    }
+
+    function bouger(e){
+      if (!bouge) {
+        if (Math.abs(e.clientY - departY) < 4) return;    /* simple clic : on ne bouge rien */
+        bouge = true;
+        li.classList.add("dragging");
+      }
+      var liste = cibles();
+      var cible = null;
+      for (var k = 0; k < liste.length; k++) {
+        var r = liste[k].getBoundingClientRect();
+        if (e.clientY < r.top + r.height / 2) { cible = liste[k]; break; }
+      }
+      /* déjà à la bonne place ? */
+      var suivant = li.nextElementSibling;
+      if (cible ? suivant === cible
+                : (!suivant || suivant.classList.contains("done") !== estFait)) return;
+      if (!liste.length) return;
+
+      var avant = positionsDe(ul);
+      if (cible) ul.insertBefore(li, cible);
+      else ul.insertBefore(li, liste[liste.length - 1].nextSibling);
+      animerDeplacement(ul, avant, 200);
+    }
+
+    function lacher(){
+      document.removeEventListener("pointermove", bouger);
+      document.removeEventListener("pointerup", lacher);
+      document.removeEventListener("pointercancel", lacher);
+      if (!bouge) return;
+      li.classList.remove("dragging");
+      dropOrdre(i, ul);
+      save();
+    }
+
+    document.addEventListener("pointermove", bouger);
+    document.addEventListener("pointerup", lacher);
+    document.addEventListener("pointercancel", lacher);
+  });
+
+  function openQuick(col, i){
+    var quick = col.querySelector(".quick");
+    if (!quick) return;
+    var input = document.createElement("input");
+    input.type = "text";
+    input.className = "quick-in";
+    input.placeholder = "Nouvelle tâche\u2026";
+    quick.replaceWith(input);
+    input.focus();
+
+    var closed = false;
+    function close(){
+      if (closed) return;
+      closed = true;
+      input.replaceWith(quick);
+    }
+
+    /* ajoute une ou plusieurs lignes d'un coup (une ligne = une tâche) */
+    function ajouter(bloc){
+      var n = 0;
+      String(bloc).split(/\r\n|\r|\n/).forEach(function(ligne){
+        var texte = ligne.replace(/\s+/g, " ").trim();
+        if (!texte) return;
+        state.projects[i].tasks.push({ id: uid(), text: texte, done: false });
+        n++;
+      });
+      if (!n) return 0;
+      state.projects[i].fini = false;                  /* nouvelles tâches : le projet repart */
+      save();
+      renderList(i);
+      updateStats();
+      return n;
+    }
+
+    function commit(){
+      var n = ajouter(input.value);
+      if (!n) return;                                  /* rien à ajouter : on reste prêt */
+      input.value = "";                                /* on reste ouvert pour la suivante */
+      input.focus();
+    }
+
+    input.addEventListener("keydown", function(e){
+      if (e.key === "Enter") { e.preventDefault(); commit(); }
+      else if (e.key === "Escape") { e.preventDefault(); close(); }
+    });
+
+    /* collage d'un bloc : on respecte les sauts de ligne (le champ, lui, les écraserait) */
+    input.addEventListener("paste", function(e){
+      var cb = e.clipboardData || window.clipboardData;
+      var bloc = cb ? String(cb.getData("text") || "") : "";
+      if (!/\r\n|\r|\n/.test(bloc)) return;            /* une seule ligne : collage normal */
+      e.preventDefault();
+      var n = ajouter(bloc);
+      input.focus();
+      if (n) showToast(n + " t\u00e2che" + (n > 1 ? "s" : "") + " ajout\u00e9e" + (n > 1 ? "s" : ""), false, 1800);
+    });
+
+    input.addEventListener("blur", close);
+  }
+
+  /* titres renommables + copie au clavier */
+  board.addEventListener("keydown", function(ev){
+    var txt = ev.target.closest ? ev.target.closest(".txt") : null;
+    if (txt && !txt.closest(".task").classList.contains("done") &&
+        (ev.key === "Enter" || ev.key === " " || ev.key === "Spacebar")) {
+      ev.preventDefault();
+      copyLine(txt);
+      return;
+    }
+    var name = ev.target.closest(".name");
+    if (!name) return;
+    if (ev.key === "Enter") { ev.preventDefault(); name.blur(); }
+    if (ev.key === "Escape") {
+      var i = Number(name.closest(".col").dataset.i);
+      name.textContent = state.projects[i].name;
+      name.blur();
+    }
+  });
+
+  board.addEventListener("paste", function(ev){
+    var name = ev.target.closest ? ev.target.closest(".name") : null;
+    if (!name) return;
+    ev.preventDefault();
+    var cb = ev.clipboardData || window.clipboardData;
+    var text = cb ? String(cb.getData("text") || "") : "";
+    text = text.replace(/\s+/g, " ").trim();
+    if (!text) return;
+    if (document.execCommand) document.execCommand("insertText", false, text);
+    else name.textContent += text;
+  });
+
+  board.addEventListener("focusout", function(ev){
+    var name = ev.target.closest(".name");
+    if (!name) return;
+    var i = Number(name.closest(".col").dataset.i);
+    var value = name.textContent.replace(/\s+/g, " ").trim();
+    if (!value) { name.textContent = state.projects[i].name; return; }
+    if (value === state.projects[i].name) return;
+    state.projects[i].name = value;
+    name.textContent = value;
+    save();
+    updateStats();
+  });
+
+  /* ------------------------------------------------------------------
+     PROJETS TERMINÉS (pastilles du pied de page)
+  ------------------------------------------------------------------ */
+  document.querySelector(".foot").addEventListener("click", function(ev){
+    var chip = ev.target.closest(".fin");
+    if (!chip) return;
+    var i = Number(chip.dataset.i);
+    revealed[i] = !revealed[i];
+    renderBoard();
+    updateStats();
+  });
+
+  /* ------------------------------------------------------------------
+     TRANSFÉRER MES TÂCHES D'UN APPAREIL À L'AUTRE
+  ------------------------------------------------------------------ */
+  var modale = document.getElementById("transfert");
+  var trZone = document.getElementById("tr-zone");
+
+  function donneesTexte(){
+    return JSON.stringify({
+      app: "taches-4-projets", version: 1,
+      exportedAt: new Date().toISOString(),
+      projects: state.projects,
+      demain: state.demain || []
+    }, null, 1);
+  }
+
+  function importerDonnees(texte){
+    var data;
+    try { data = JSON.parse(String(texte)); }
+    catch (e) { alert("Données illisibles : ce texte n'est pas valide."); return; }
+    if (!data || !Array.isArray(data.projects)) { alert("Ces données ne contiennent pas de tâches."); return; }
+
+    var total = 0;
+    data.projects.forEach(function(p){ if (p && Array.isArray(p.tasks)) total += p.tasks.length; });
+    var question = total
+      ? "Remplacer les tâches de cet appareil par " + total + " tâche" + (total > 1 ? "s" : "") + " ?"
+      : "Ces données ne contiennent aucune tâche. Continuer quand même ?";
+    if (!confirm(question)) return;
+
+    try { localStorage.setItem(KEY, JSON.stringify({ projects: data.projects, demain: data.demain || [] })); }
+    catch (e) { alert("Impossible d'enregistrer sur cet appareil."); return; }
+    location.reload();
+  }
+
+  document.getElementById("transfert-btn").addEventListener("click", function(){
+    trZone.value = "";
+    modale.hidden = false;
+  });
+  document.getElementById("tr-fermer").addEventListener("click", function(){ modale.hidden = true; });
+  modale.addEventListener("click", function(ev){ if (ev.target === modale) modale.hidden = true; });
+  document.addEventListener("keydown", function(ev){
+    if (ev.key === "Escape" && !modale.hidden) modale.hidden = true;
+  });
+
+  document.getElementById("tr-copier").addEventListener("click", function(){
+    copyText(donneesTexte(), function(ok){
+      showToast(ok ? "Données copiées — envoie-les toi puis colle-les sur l'autre appareil"
+                   : "Copie impossible : utilise « Télécharger un fichier »", false, 4200);
+    });
+  });
+
+  document.getElementById("tr-fichier").addEventListener("click", function(){
+    var blob = new Blob([donneesTexte()], { type: "application/json" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = "mes-taches-" + new Date().toISOString().slice(0, 10) + ".json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+  });
+
+  document.getElementById("tr-importer").addEventListener("click", function(){
+    if (!trZone.value.trim()) { showToast("Colle d'abord les données dans la case", false, 2600); return; }
+    importerDonnees(trZone.value);
+  });
+
+  document.getElementById("tr-ouvrir").addEventListener("click", function(){
+    document.getElementById("tr-input").click();
+  });
+
+  document.getElementById("tr-input").addEventListener("change", function(ev){
+    var f = ev.target.files && ev.target.files[0];
+    if (!f) return;
+    var lecteur = new FileReader();
+    lecteur.onload = function(){ importerDonnees(lecteur.result); };
+    lecteur.readAsText(f);
+    ev.target.value = "";
+  });
+
+  /* application installable : on met la page en cache pour qu'elle marche hors ligne */
+  if ("serviceWorker" in navigator && location.protocol.indexOf("http") === 0) {
+    window.addEventListener("load", function(){
+      navigator.serviceWorker.register("sw.js").catch(function(){});
+    });
+  }
+
+  /* ------------------------------------------------------------------
+     SYNCHRONISATION ENTRE MES APPAREILS
+     Les identifiants sont stockés sur l'appareil, jamais dans ce fichier.
+     Service par défaut : jsonbin.io (gratuit). « syncReg.base » permet
+     d'utiliser un autre service compatible (mêmes GET/PUT).
+  ------------------------------------------------------------------ */
+  var CLE_REGLAGES = "taches.4projets.sync";
+  var CLE_SECOURS  = "taches.4projets.sync.avant";
+  var syncReg = {};
+  try { syncReg = JSON.parse(localStorage.getItem(CLE_REGLAGES) || "{}") || {}; } catch (e) { syncReg = {}; }
+
+  var syEtat = document.getElementById("sy-etat");
+  var syId = document.getElementById("sy-id");
+  var syCle = document.getElementById("sy-cle");
+  var syRestaurer = document.getElementById("sy-restaurer");
+  var syncEnCours = false, envoiTimer = null, dernierContact = 0;
+
+  function synchroPrete(){ return !!(syncReg.actif && syncReg.bin && syncReg.cle); }
+  function synchroURL(){ return (syncReg.base || "https://api.jsonbin.io/v3/b/") + encodeURIComponent(syncReg.bin); }
+  function garderReglages(){ try { localStorage.setItem(CLE_REGLAGES, JSON.stringify(syncReg)); } catch (e) {} }
+
+  function ilYAMinutes(t){
+    if (!t) return "";
+    var min = Math.round((Date.now() - t) / 60000);
+    if (min < 1) return "à l'instant";
+    if (min === 1) return "il y a 1 minute";
+    if (min < 60) return "il y a " + min + " minutes";
+    var h = Math.round(min / 60);
+    return "il y a " + h + " heure" + (h > 1 ? "s" : "");
+  }
+  function direEtat(texte, genre){
+    if (!syEtat) return;
+    syEtat.textContent = texte;
+    syEtat.className = "modale-etat" + (genre ? " " + genre : "");
+  }
+  function montrerEtat(){
+    if (syId) syId.value = syncReg.bin || "";
+    if (syCle) syCle.value = syncReg.cle || "";
+    if (syRestaurer) syRestaurer.hidden = !localStorage.getItem(CLE_SECOURS);
+    if (!synchroPrete()) { direEtat(syncReg.actif ? "Identifiants incomplets" : "Non configurée"); return; }
+    direEtat("Activée · dernière synchro " + (ilYAMinutes(dernierContact) || "jamais"), "ok");
+  }
+  function direErreur(e){
+    var msg = String((e && e.message) || e || "");
+    if (/401|403/.test(msg)) direEtat("Refusé : vérifie la clé secrète", "ko");
+    else if (/404/.test(msg)) direEtat("Stockage introuvable : vérifie le Bin ID", "ko");
+    else if (/429/.test(msg)) direEtat("Trop de synchros (quota du mois) — tes tâches locales sont intactes", "ko");
+    else if (/Failed to fetch|NetworkError|load failed/i.test(msg)) direEtat("Pas de connexion Internet", "ko");
+    else direEtat("Erreur : " + msg, "ko");
+  }
+
+  function tirer(){
+    return fetch(synchroURL() + "/latest", {
+      headers: { "X-Master-Key": syncReg.cle, "X-Bin-Meta": "false" },
+      cache: "no-store"
+    }).then(function(r){
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    }).then(function(d){
+      var distant = (d && d.projects) ? d : (d && d.record && d.record.projects ? d.record : null);
+      if (!distant) return "vide";
+      if ((Number(distant.updatedAt) || 0) > (Number(state.updatedAt) || 0)) {
+        appliquerDistant(distant);
+        return "recu";
+      }
+      return "local";
+    });
+  }
+
+  function appliquerDistant(d){
+    var avant = null;
+    try { avant = localStorage.getItem(KEY); } catch (e) {}
+    if (avant) { try { localStorage.setItem(CLE_SECOURS, avant); } catch (e) {} }
+    state = {
+      projects: normaliserProjets(d.projects),
+      demain: normaliserDemain(d.demain),
+      updatedAt: Number(d.updatedAt) || Date.now()
+    };
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+    syncReg.envoi = state.updatedAt;        /* cet appareil est de nouveau à jour : rien à renvoyer */
+    garderReglages();
+    firstPaint = true;
+    celebrated = false;
+    renderBoard();
+    updateStats();
+    montrerReprendre();
+    if (syRestaurer) syRestaurer.hidden = false;
+  }
+
+  function pousser(){
+    var envoi = state.updatedAt || Date.now();
+    return fetch(synchroURL(), {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", "X-Master-Key": syncReg.cle },
+      body: JSON.stringify({
+        app: "taches-4-projets", version: 1,
+        updatedAt: envoi,
+        projects: state.projects,
+        demain: state.demain || []
+      })
+    }).then(function(r){
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      syncReg.envoi = envoi;                /* mémorisé : on ne renverra pas la même chose pour rien */
+      garderReglages();
+      return true;
+    });
+  }
+
+  function synchroniser(){
+    if (!synchroPrete()) { montrerEtat(); return Promise.resolve(); }
+    if (syncEnCours) return Promise.resolve();
+    syncEnCours = true;
+    direEtat("Synchronisation…");
+    return tirer().then(function(res){
+      dernierContact = Date.now();
+      if (res === "recu") {
+        direEtat("Tâches reçues de l'autre appareil " + ilYAMinutes(dernierContact), "ok");
+        return null;
+      }
+      /* rien n'a changé ici depuis le dernier envoi : inutile de renvoyer (économie de quota) */
+      if (Number(syncReg.envoi) === Number(state.updatedAt)) {
+        direEtat("À jour " + ilYAMinutes(dernierContact), "ok");
+        return null;
+      }
+      return pousser().then(function(){
+        direEtat("Synchronisé " + ilYAMinutes(dernierContact), "ok");
+      });
+    }).catch(direErreur).then(function(){ syncEnCours = false; });
+  }
+
+  /* envoi automatique, peu après chaque modification */
+  function planifierEnvoi(){
+    if (!synchroPrete()) return;
+    clearTimeout(envoiTimer);
+    envoiTimer = setTimeout(function(){
+      pousser().then(function(){
+        dernierContact = Date.now();
+        direEtat("Synchronisé " + ilYAMinutes(dernierContact), "ok");
+      }).catch(direErreur);
+    }, 2500);
+  }
+
+  document.getElementById("sy-activer").addEventListener("click", function(){
+    syncReg.bin = (syId.value || "").trim();
+    syncReg.cle = (syCle.value || "").trim();
+    syncReg.actif = !!(syncReg.bin && syncReg.cle);
+    garderReglages();
+    if (!syncReg.actif) { direEtat("Renseigne l'identifiant et la clé", "ko"); return; }
+    synchroniser();
+  });
+
+  document.getElementById("sy-maintenant").addEventListener("click", function(){ synchroniser(); });
+
+  document.getElementById("sy-stop").addEventListener("click", function(){
+    syncReg.actif = false;
+    garderReglages();
+    direEtat("Synchro désactivée sur cet appareil");
+  });
+
+  if (syRestaurer) syRestaurer.addEventListener("click", function(){
+    var avant = localStorage.getItem(CLE_SECOURS);
+    if (!avant) return;
+    if (!confirm("Remettre les tâches telles qu'elles étaient avant la dernière synchro ?")) return;
+    try { localStorage.setItem(KEY, avant); } catch (e) {}
+    location.reload();
+  });
+
+  /* on revérifie quand on revient sur la page (au plus une fois toutes les 5 minutes) */
+  document.addEventListener("visibilitychange", function(){
+    if (document.visibilityState === "visible" && synchroPrete() &&
+        Date.now() - dernierContact > 300000) synchroniser();
+  });
+
+
+  /* ------------------------------------------------------------------
+     BOUTONS DU PIED DE PAGE
+  ------------------------------------------------------------------ */
+  document.getElementById("demain").addEventListener("click", transfererADemain);
+  document.getElementById("reprendre").addEventListener("click", reprendreDemain);
+
+  /* ------------------------------------------------------------------
+     DÉMARRAGE
+  ------------------------------------------------------------------ */
+  renderBoard();
+  updateStats();
+  montrerReprendre();
+  montrerEtat();
+  if (synchroPrete()) synchroniser();     /* au lancement : on récupère ce qui vient de l'autre appareil */
+
+  if (!storageOK || !loadedOK) {
+    storageNote.hidden = false;
+    storageNote.textContent = loadedOK
+      ? "Sauvegarde indisponible dans ce navigateur."
+      : "Données enregistrées illisibles — rien n'a été effacé (vide le stockage du site si besoin).";
+    storageNote.className = "warn";
+  }
+})();
+</script>
+</body>
+</html>
