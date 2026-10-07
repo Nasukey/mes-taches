@@ -85,8 +85,10 @@
   html{-webkit-text-size-adjust:100%;height:100%}
   body{
     margin:0;
-    height:100%;
-    display:flex;flex-direction:column;overflow:hidden;
+    min-height:100%;
+    /* c'est la PAGE qui défile : un seul geste du haut en bas, plus de
+       zone qui défile dans la zone (ce qui obligeait à s'y reprendre) */
+    display:flex;flex-direction:column;
     background:
       radial-gradient(1100px 520px at 50% -8%, var(--surface) 0%, transparent 62%),
       var(--bg);
@@ -184,7 +186,7 @@
 
   /* ---------------- tâches (centrées dans la colonne) ---------------- */
   .list{
-    list-style:none;margin:12px 0 0;padding:0 2px 0 0;flex:1;min-height:0;overflow-y:auto;
+    list-style:none;margin:12px 0 0;padding:0 2px 0 0;flex:1;min-height:0;overflow-y:visible;
     scrollbar-width:thin;scrollbar-color:var(--line) transparent;
   }
   .list::-webkit-scrollbar{width:6px}
@@ -214,19 +216,38 @@
   .toggle:hover .box{border-color:var(--accent)}
   .box svg{width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round;
     stroke-dasharray:26;stroke-dashoffset:26;transition:stroke-dashoffset .18s var(--ease) .01s}
-  /* le texte : on copie la ligne (sauf si elle est barrée) */
+  /* le texte : un clic dessus pour le modifier */
   .txt{
     flex:1;min-width:0;font-size:calc(12.5px*var(--ech));line-height:1.45;word-break:break-word;position:relative;
-    text-align:left;padding:calc(6px*var(--ech)) calc(5px*var(--ech));border-radius:10px;cursor:copy;outline:none;
+    text-align:left;padding:calc(6px*var(--ech)) calc(5px*var(--ech));border-radius:10px;cursor:text;outline:none;
     text-decoration-line:line-through;
     text-decoration-thickness:1.5px;
     text-decoration-color:transparent;
-    transition:color .18s var(--ease),background .18s var(--ease),text-decoration-color .22s ease;
+    transition:color .18s var(--ease),background .18s var(--ease),text-decoration-color .22s ease,box-shadow .18s ease;
   }
   .txt:hover{background:var(--accent-soft)}
   .txt:focus-visible{background:var(--accent-soft);outline:2px solid var(--accent);outline-offset:-2px}
   .txt.copie{animation:copie .55s ease-out}
   @keyframes copie{from{color:var(--accent)}}
+  /* en cours de modification : on voit que c'est devenu un champ */
+  .txt.edition,.txt.edition:hover{
+    background:var(--surface);text-decoration-color:transparent;
+    box-shadow:inset 0 0 0 1.5px var(--accent);cursor:text;
+  }
+  .txt.edition:empty::before{
+    content:"Nouvelle tâche\2026";color:var(--muted);pointer-events:none;
+  }
+  /* bouton copier, une ligne à la fois */
+  .cop{
+    appearance:none;border:0;background:none;color:var(--muted);cursor:pointer;
+    width:calc(20px*var(--ech));height:calc(24px*var(--ech));padding:0;border-radius:7px;
+    flex:0 0 auto;margin-top:5px;display:grid;place-items:center;opacity:.28;
+    transition:opacity .2s ease,color .2s ease,background .2s ease;
+  }
+  .cop svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+  .task:hover .cop{opacity:1}
+  .cop:hover{color:var(--accent);background:var(--accent-soft)}
+  .cop.copie{animation:copie .55s ease-out}
   /* la poignée : on glisse la ligne pour la déplacer */
   .drag{
     appearance:none;border:0;background:none;color:var(--muted);cursor:grab;
@@ -306,11 +327,13 @@
 
   /* ---------------- pied ---------------- */
   .foot{
+    position:sticky;bottom:0;z-index:6;      /* les boutons restent à portée en défilant */
     text-align:center;padding:9px 24px calc(11px + env(safe-area-inset-bottom, 0px));
     border-top:1px solid var(--line);
     font-size:calc(10.5px*var(--ech));color:var(--muted);
     display:flex;justify-content:center;align-items:center;gap:6px;flex-wrap:wrap;
-    background:var(--bg);
+    background:var(--veil);
+    -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
   }
   .foot button{
     appearance:none;border:0;background:none;cursor:pointer;font:inherit;font-size:calc(10.5px*var(--ech));color:var(--muted);
@@ -438,6 +461,7 @@
   @media (hover: none){
     .del{opacity:.5;pointer-events:auto}
     .drag{opacity:.45}
+    .cop{opacity:.5}
     .txt{cursor:default}
     .col:hover{transform:none;box-shadow:var(--shadow)}
     .modale-actions button:hover{border-color:var(--line);color:var(--ink-2);transform:none}
@@ -1039,11 +1063,24 @@
       var txt = document.createElement("span");
       txt.className = "txt";
       txt.textContent = t.text;
-      if (!t.done) {                        /* une tâche barrée ne se copie pas */
-        txt.title = "Cliquer pour copier la ligne";
-        txt.tabIndex = 0;
-        txt.setAttribute("role", "button");
-        txt.setAttribute("aria-label", "Copier : " + t.text);
+      txt.dataset.id = t.id;
+      txt.tabIndex = 0;
+      txt.setAttribute("role", "button");
+      txt.title = "Cliquer pour modifier";
+      txt.setAttribute("aria-label", "Modifier : " + t.text);
+
+      /* bouton copier : la copie ne se fait plus au clic sur la tâche
+         (le clic sert maintenant à modifier), et une tâche barrée ne se
+         copie pas — comme avant */
+      var cop = null;
+      if (!t.done) {
+        cop = document.createElement("button");
+        cop.type = "button";
+        cop.className = "cop";
+        cop.dataset.id = t.id;
+        cop.title = "Copier cette ligne";
+        cop.setAttribute("aria-label", "Copier : " + t.text);
+        cop.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6.5A2.5 2.5 0 0 1 7.5 4H15"/></svg>';
       }
 
       var del = document.createElement("button");
@@ -1075,6 +1112,7 @@
 
       li.appendChild(toggle);
       li.appendChild(txt);
+      if (cop) li.appendChild(cop);
       li.appendChild(ind);
       li.appendChild(drag);
       li.appendChild(del);
@@ -1425,15 +1463,129 @@
     }
   }
 
-  function copyLine(txt){
+  function copyLine(txt, cible){
     var text = txt.textContent;
     copyText(text, function(ok){
-      txt.classList.remove("copie");
-      void txt.offsetWidth;
-      txt.classList.add("copie");
+      var el = cible || txt;
+      el.classList.remove("copie");
+      void el.offsetWidth;
+      el.classList.add("copie");
       var court = text.length > 30 ? text.slice(0, 30) + "\u2026" : text;
       showToast(ok ? "Copi\u00e9 : \u00ab " + court + " \u00bb" : "Copie impossible dans ce navigateur", false, 2400);
     });
+  }
+
+  /* ------------------------------------------------------------------
+     MODIFIER UNE TÂCHE : un clic sur le texte, on écrit, Entrée crée la
+     ligne suivante (comme dans un éditeur). Rien n'est jamais perdu :
+     quitter le champ enregistre, Échap annule.
+  ------------------------------------------------------------------ */
+  function tacheParId(i, id){
+    var trouve = null;
+    state.projects[i].tasks.forEach(function(t){ if (t.id === id) trouve = t; });
+    return trouve;
+  }
+
+  function editer(txt, i){
+    if (!txt || txt.isContentEditable) return;
+    var t = tacheParId(i, txt.dataset.id);
+    if (!t) return;
+
+    txt.contentEditable = "true";
+    txt.spellcheck = false;
+    txt.classList.add("edition");
+    txt.setAttribute("role", "textbox");
+    txt.setAttribute("aria-label", "Modifier la tâche");
+    txt.title = "Entrée : valider et créer la ligne suivante \u00b7 \u00c9chap : annuler";
+
+    /* le curseur à la fin du texte */
+    try {
+      var plage = document.createRange();
+      plage.selectNodeContents(txt);
+      plage.collapse(false);
+      var sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(plage);
+    } catch (e) {}
+    txt.focus();
+
+    txt.onkeydown = function(ev){
+      if (ev.key === "Enter" || ev.keyCode === 13) {
+        ev.preventDefault();
+        finirEdition(txt, i, true);
+      } else if (ev.key === "Escape" || ev.keyCode === 27) {
+        ev.preventDefault();
+        txt.textContent = t.text;                 /* on remet le texte d'origine */
+        finirEdition(txt, i, false, true);
+      }
+    };
+
+    /* collage : on ne garde que le texte, sans mise en forme */
+    txt.onpaste = function(ev){
+      ev.preventDefault();
+      var cb = ev.clipboardData || window.clipboardData;
+      var brut = cb ? String(cb.getData("text") || "") : "";
+      var propre = brut.replace(/\s+/g, " ").trim();
+      if (propre) document.execCommand("insertText", false, propre);
+    };
+
+    txt.onblur = function(){ finirEdition(txt, i, false); };
+  }
+
+  function finirEdition(txt, i, creerLigne, annuler){
+    var t = tacheParId(i, txt.dataset.id);
+    if (!t) return;
+
+    txt.onkeydown = txt.onpaste = txt.onblur = null;
+    txt.contentEditable = "false";
+    txt.classList.remove("edition");
+    txt.setAttribute("role", "button");
+    txt.setAttribute("aria-label", "Modifier : " + txt.textContent);
+    txt.title = "Cliquer pour modifier";
+
+    var texte = String(txt.textContent || "").replace(/\s+/g, " ").trim();
+    var change = false;
+
+    if (annuler) {
+      txt.textContent = t.text;
+    } else if (!texte) {
+      if (creerLigne) {
+        /* ligne vidée puis Entrée : on la retire, comme un éditeur */
+        state.projects[i].tasks = state.projects[i].tasks.filter(function(x){ return x.id !== t.id; });
+        nettoyerNiveaux(i);
+        change = true;
+      } else {
+        txt.textContent = t.text;                 /* on ne garde pas une tâche vide */
+      }
+    } else if (texte !== t.text) {
+      /* si on écrit une adresse ou un lien, on le rend cliquable ailleurs */
+      t.text = texte;
+      txt.textContent = texte;
+      change = true;
+    }
+
+    /* Entrée : on enchaîne avec une nouvelle ligne vide juste en dessous */
+    var nouveau = null;
+    if (creerLigne && texte && !annuler) {
+      var liste = state.projects[i].tasks;
+      var nv = { id: uid(), text: "", done: false, doneAt: 0, niv: Number(t.niv) || 0 };
+      var k = liste.indexOf(t);
+      if (k < 0) k = liste.length - 1;
+      liste.splice(k + 1, 0, nv);
+      nettoyerNiveaux(i);
+      nouveau = nv;
+      /* volontairement pas d'enregistrement ici : une ligne encore vide n'a
+         rien à sauvegarder. Dès qu'on écrit dedans, elle est enregistrée. */
+    }
+
+    if (change) save();
+    if (change || nouveau) { renderList(i); updateStats(); }
+
+    if (nouveau) {
+      var col = colOf(i);
+      var suivant = col ? col.querySelector('.txt[data-id="' + nouveau.id + '"]') : null;
+      if (suivant) editer(suivant, i);
+    }
   }
 
   /* copier toutes les tâches à faire d'un projet */
@@ -1510,12 +1662,20 @@
 
     if (ev.target.closest(".del")) return;            /* géré par le 2e écouteur */
 
+    /* copier la ligne (bouton dédié) */
+    var cop = ev.target.closest(".cop");
+    if (cop) {
+      var ligneCop = cop.closest(".task");
+      var txtCop = ligneCop ? ligneCop.querySelector(".txt") : null;
+      if (txtCop) copyLine(txtCop, cop);
+      return;
+    }
+
+    /* un clic sur le texte : on modifie la tâche */
     var txt = ev.target.closest(".txt");
     if (txt) {
-      if (txt.closest(".task").classList.contains("done")) return;   /* barrée : rien à copier */
-      var sel = window.getSelection ? String(window.getSelection()) : "";
-      if (sel.trim()) return;                         /* du texte est sélectionné : on ne copie pas */
-      copyLine(txt);
+      if (txt.isContentEditable) return;              /* déjà en cours de modification */
+      editer(txt, i);
       return;
     }
 
@@ -1796,13 +1956,13 @@
     });
   }
 
-  /* titres renommables + copie au clavier */
+  /* titres renommables + modification au clavier */
   board.addEventListener("keydown", function(ev){
     var txt = ev.target.closest ? ev.target.closest(".txt") : null;
-    if (txt && !txt.closest(".task").classList.contains("done") &&
+    if (txt && !txt.isContentEditable &&
         (ev.key === "Enter" || ev.key === " " || ev.key === "Spacebar")) {
       ev.preventDefault();
-      copyLine(txt);
+      editer(txt, Number(txt.closest(".col").dataset.i));
       return;
     }
     var name = ev.target.closest(".name");
