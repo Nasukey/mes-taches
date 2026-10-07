@@ -14,9 +14,16 @@ var FICHIERS = [
 
 self.addEventListener("install", function(e){
   e.waitUntil(
-    caches.open(CACHE)
-      .then(function(c){ return c.addAll(FICHIERS); })
-      .then(function(){ return self.skipWaiting(); })
+    caches.open(CACHE).then(function(c){
+      /* On relit chaque fichier en forçant le réseau (cache: "reload").
+         Sans ça, le cache du navigateur pourrait resservir l'ancienne page
+         et la mise à jour n'aurait aucun effet. */
+      return Promise.all(FICHIERS.map(function(u){
+        return fetch(new Request(u, { cache: "reload" })).then(function(rep){
+          if (rep && (rep.ok || rep.type === "opaque")) return c.put(u, rep);
+        }).catch(function(){});
+      }));
+    }).then(function(){ return self.skipWaiting(); })
       .catch(function(){ return self.skipWaiting(); })
   );
 });

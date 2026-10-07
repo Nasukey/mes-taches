@@ -1937,6 +1937,20 @@
     window.addEventListener("load", function(){
       navigator.serviceWorker.register("sw.js").catch(function(){});
     });
+
+    /* Mise à jour automatique : quand une nouvelle version prend la main, on
+       recharge la page une seule fois pour l'afficher tout de suite. Sans ça,
+       il faudrait ouvrir l'application deux fois (le cache sert d'abord
+       l'ancienne page pendant que la nouvelle se télécharge).
+       À la toute première installation il n'y a pas encore de "contrôleur" :
+       on ne recharge donc pas, pour éviter un clignotement inutile. */
+    var dejaControle = !!navigator.serviceWorker.controller;
+    var recharge = false;
+    navigator.serviceWorker.addEventListener("controllerchange", function(){
+      if (!dejaControle || recharge) return;
+      recharge = true;
+      location.reload();
+    });
   }
 
   /* ------------------------------------------------------------------
