@@ -1744,17 +1744,12 @@
       return liste;
     }
 
-    function bouger(e){
-      dernierX = e.clientX;
-      if (!bouge) {
-        if (Math.abs(e.clientY - departY) < 4 && Math.abs(e.clientX - departX) < 8) return;
-        bouge = true;
-        li.classList.add("dragging");
-      }
-
+    /* Place la ligne : aperçu du rattachement à gauche/droite, et
+       réordonnancement à la verticale. */
+    function placer(e){
       /* Aperçu du rattachement : la ligne se décale en direct sous le doigt,
          pour qu'on voie tout de suite à quel niveau elle va se retrouver. */
-      var cran = Math.round((dernierX - departX) / 34);
+      var cran = Math.round((e.clientX - departX) / 34);
       var voulu = Math.max(0, Math.min(niveauMax(i, idLi), nivDepart + cran));
       li.style.marginLeft = "calc(" + (voulu * 16) + "px * var(--ech))";
 
@@ -1779,10 +1774,50 @@
       animerDeplacement(ul, avant, 200);
     }
 
+    /* Défilement automatique quand on arrive près d'un bord : sans ça, on ne
+       peut pas amener une tâche plus bas que le bas de l'écran sans la poser
+       et la reprendre. Plus on approche du bord, plus ça défile vite. */
+    var ZONE = 110;            /* hauteur de la zone sensible, en haut et en bas */
+    var VITESSE_MAX = 15;      /* pixels par image, au maximum */
+    var vitesse = 0, raf = 0;
+
+    function defiler(){
+      raf = 0;
+      if (!vitesse) return;
+      window.scrollBy(0, vitesse);
+      if (dernierEv) placer(dernierEv);      /* la page a bougé : on refait le point */
+      raf = requestAnimationFrame(defiler);
+    }
+
+    function majDefilement(y){
+      var h = window.innerHeight || 800;
+      var v = 0;
+      if (y < ZONE) v = -Math.ceil((ZONE - y) / ZONE * VITESSE_MAX);
+      else if (y > h - ZONE) v = Math.ceil((y - (h - ZONE)) / ZONE * VITESSE_MAX);
+      vitesse = Math.max(-VITESSE_MAX, Math.min(VITESSE_MAX, v));
+      if (vitesse && !raf) raf = requestAnimationFrame(defiler);
+    }
+
+    var dernierEv = null;
+
+    function bouger(e){
+      dernierEv = e;
+      dernierX = e.clientX;
+      if (!bouge) {
+        if (Math.abs(e.clientY - departY) < 4 && Math.abs(e.clientX - departX) < 8) return;
+        bouge = true;
+        li.classList.add("dragging");
+      }
+      placer(e);
+      majDefilement(e.clientY);
+    }
+
     function lacher(){
       document.removeEventListener("pointermove", bouger);
       document.removeEventListener("pointerup", lacher);
       document.removeEventListener("pointercancel", lacher);
+      vitesse = 0;
+      if (raf) { cancelAnimationFrame(raf); raf = 0; }
       li.style.marginLeft = "";
       if (!bouge) return;
       li.classList.remove("dragging");
