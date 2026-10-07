@@ -274,16 +274,6 @@
   @keyframes flash{0%{background:var(--accent-soft)}100%{background:transparent}}
   .task.removing{opacity:0;transform:translateX(14px)}
 
-  .del{
-    appearance:none;border:0;background:none;cursor:pointer;color:var(--muted);
-    font:inherit;font-size:calc(14px*var(--ech));line-height:1;width:calc(24px*var(--ech));height:calc(24px*var(--ech));border-radius:7px;
-    display:grid;place-items:center;flex:0 0 auto;margin-top:5px;
-    opacity:0;transform:scale(.8);pointer-events:none;
-    transition:opacity .2s ease,transform .2s var(--ease),color .2s ease,background .2s ease;
-  }
-  .task:hover .del,.del:focus-visible{opacity:1;transform:scale(1);pointer-events:auto}
-  .del:hover{color:var(--danger);background:var(--danger-soft)}
-
   /* ---------------- sous-tâches (rattachées à la ligne du dessus) ---------------- */
   .task.n1{margin-left:calc(16px*var(--ech))}
   .task.n2{margin-left:calc(32px*var(--ech))}
@@ -291,16 +281,6 @@
     content:"";position:absolute;top:5px;bottom:5px;width:2px;border-radius:2px;
     left:calc(-9px*var(--ech));background:var(--accent);opacity:.4;
   }
-  .ind{
-    appearance:none;border:0;background:none;color:var(--muted);cursor:pointer;
-    width:calc(20px*var(--ech));height:calc(24px*var(--ech));padding:0;border-radius:7px;
-    flex:0 0 auto;margin-top:5px;display:grid;place-items:center;opacity:.28;
-    transition:opacity .2s ease,color .2s ease,background .2s ease;
-  }
-  .ind svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-  .task:hover .ind{opacity:1}
-  .ind:hover{color:var(--accent);background:var(--accent-soft)}
-  .ind[data-actif="0"]{opacity:.08;pointer-events:none}
 
   .empty{
     text-align:center;color:var(--muted);font-size:calc(11.5px*var(--ech));padding:16px 4px;list-style:none;
@@ -459,7 +439,6 @@
 
   /* ---------------- téléphone : pas de survol ---------------- */
   @media (hover: none){
-    .del{opacity:.5;pointer-events:auto}
     .drag{opacity:.45}
     .cop{opacity:.5}
     .txt{cursor:default}
@@ -1019,13 +998,14 @@
     return true;
   }
 
-  /* Peut-on indenter cette tâche sous la précédente ? */
-  function peutIndenter(liste, t){
-    var i = liste.indexOf(t);
-    if (i <= 0) return false;
-    var prec = Number(liste[i - 1].niv) || 0;
-    var ici = Number(t.niv) || 0;
-    return ici < 2 && prec < 2 && ici <= prec;
+  /* Jusqu'où peut-on rattacher cette tâche ? (on ne descend que d'un cran
+     à la fois, et jamais la toute première ligne) */
+  function niveauMax(i, id){
+    var liste = state.projects[i].tasks;
+    var k = -1;
+    liste.forEach(function(x, n){ if (x.id === id) k = n; });
+    if (k <= 0) return 0;
+    return Math.min(2, (Number(liste[k - 1].niv) || 0) + 1);
   }
 
   function renderList(i){
@@ -1083,39 +1063,22 @@
         cop.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6.5A2.5 2.5 0 0 1 7.5 4H15"/></svg>';
       }
 
-      var del = document.createElement("button");
-      del.type = "button";
-      del.className = "del";
-      del.title = "Supprimer";
-      del.setAttribute("aria-label", "Supprimer la tâche");
-      del.textContent = "\u00d7";
-
+      /* Un seul bouton pour déplacer ET rattacher : on le fait glisser
+         vers le haut ou le bas pour changer l'ordre, et vers la droite
+         pour rattacher la tâche à celle du dessus (vers la gauche pour
+         la détacher). */
       var drag = document.createElement("button");
       drag.type = "button";
-      drag.className = "drag";      drag.title = "Glisser pour déplacer";
-      drag.setAttribute("aria-label", "Déplacer la tâche (glisser)");
+      drag.className = "drag";
+      drag.dataset.id = t.id;
+      drag.title = "Glisser : haut/bas pour déplacer, droite/gauche pour rattacher";
+      drag.setAttribute("aria-label", "Déplacer ou rattacher la tâche (glisser)");
       drag.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14M5 12h14M5 16h14"/></svg>';
-
-      /* indenter / désindenter : la tâche appartient alors à celle du dessus */
-      var ind = document.createElement("button");
-      ind.type = "button";
-      ind.className = "ind";
-      ind.dataset.id = t.id;
-      var peut = peutIndenter(liste, t);
-      ind.dataset.actif = (peut || niv > 0) ? "1" : "0";
-      ind.dataset.sens = (niv > 0) ? "moins" : "plus";
-      ind.title = (niv > 0) ? "Détacher de la tâche du dessus" : "Rattacher à la tâche du dessus";
-      ind.setAttribute("aria-label", ind.title);
-      ind.innerHTML = (niv > 0)
-        ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 6l-6 6 6 6"/></svg>'
-        : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 6l6 6-6 6"/></svg>';
 
       li.appendChild(toggle);
       li.appendChild(txt);
       if (cop) li.appendChild(cop);
-      li.appendChild(ind);
       li.appendChild(drag);
-      li.appendChild(del);
       ul.appendChild(li);
     });
   }
@@ -1621,20 +1584,6 @@
     var cpall = ev.target.closest(".copyall");
     if (cpall) { copyTodo(i, cpall); return; }
 
-    /* rattacher / détacher une sous-tâche */
-    var ind = ev.target.closest(".ind");
-    if (ind) {
-      var listeInd = state.projects[i].tasks;
-      var cible = null;
-      listeInd.forEach(function(x){ if (x.id === ind.dataset.id) cible = x; });
-      if (cible) {
-        var n = Number(cible.niv) || 0;
-        setNiveau(i, ind.dataset.id, n > 0 ? 0 : n + 1);
-        ind.blur();
-      }
-      return;
-    }
-
     var tick = ev.target.closest(".toggle");
     if (tick) {
       var li = tick.closest(".task");
@@ -1660,8 +1609,6 @@
       return;
     }
 
-    if (ev.target.closest(".del")) return;            /* géré par le 2e écouteur */
-
     /* copier la ligne (bouton dédié) */
     var cop = ev.target.closest(".cop");
     if (cop) {
@@ -1681,43 +1628,6 @@
 
     var quick = ev.target.closest(".quick");
     if (quick) openQuick(col, i);
-  });
-
-  board.addEventListener("click", function(ev){
-    var del = ev.target.closest(".del");
-    if (!del) return;
-    var li = del.closest(".task");
-    if (!li || li.classList.contains("removing")) return;
-    var i = Number(del.closest(".col").dataset.i);
-    var id = li.dataset.id;
-    var index = -1, task = null;
-
-    state.projects[i].tasks.forEach(function(t, k){
-      if (t.id === id) { index = k; task = t; }
-    });
-    if (index < 0) return;
-
-    if (reduceMotion) {
-      remove();
-    } else {
-      li.style.transition = "height .26s cubic-bezier(.22,.68,0,1), opacity .2s ease, transform .26s cubic-bezier(.22,.68,0,1)";
-      li.style.overflow = "hidden";
-      li.style.height = li.offsetHeight + "px";
-      void li.offsetWidth;                     /* fige la hauteur de départ */
-      li.classList.add("removing");
-      li.style.height = "0px";
-      setTimeout(remove, 250);
-    }
-
-    function remove(){
-      state.projects[i].tasks = state.projects[i].tasks.filter(function(t){ return t.id !== id; });
-      nettoyerNiveaux(i);          /* les sous-tâches se rattachent à la ligne du dessus */
-      lastDeleted = [{ i: i, index: index, task: task }];
-      save();
-      renderList(i);
-      updateStats();
-      showToast(task.text.length > 26 ? "Tâche supprimée" : "\u00ab " + task.text + " \u00bb supprimée", true);
-    }
   });
 
   /* Mesure la position de chaque ligne, puis rejoue le déplacement en douceur
@@ -1841,6 +1751,13 @@
         bouge = true;
         li.classList.add("dragging");
       }
+
+      /* Aperçu du rattachement : la ligne se décale en direct sous le doigt,
+         pour qu'on voie tout de suite à quel niveau elle va se retrouver. */
+      var cran = Math.round((dernierX - departX) / 34);
+      var voulu = Math.max(0, Math.min(niveauMax(i, idLi), nivDepart + cran));
+      li.style.marginLeft = "calc(" + (voulu * 16) + "px * var(--ech))";
+
       var membres = bloc();
       var liste = cibles(membres);
       var cible = null;
@@ -1866,15 +1783,17 @@
       document.removeEventListener("pointermove", bouger);
       document.removeEventListener("pointerup", lacher);
       document.removeEventListener("pointercancel", lacher);
+      li.style.marginLeft = "";
       if (!bouge) return;
       li.classList.remove("dragging");
       dropOrdre(i, ul);
 
-      /* glissé vers la droite ou la gauche : on change de niveau */
+      /* glissé vers la droite ou la gauche : on change de niveau. On ne
+         descend que d'un cran à la fois, et jamais la toute première ligne. */
       var cran = Math.round((dernierX - departX) / 34);
       if (cran !== 0) {
-        setNiveau(i, idLi, Math.max(0, Math.min(2, nivDepart + cran)));
-        return;
+        var niv = Math.max(0, Math.min(niveauMax(i, idLi), nivDepart + cran));
+        if (niv !== nivDepart) { setNiveau(i, idLi, niv); return; }
       }
       save();
     }
