@@ -322,10 +322,11 @@
   .foot button:hover{color:var(--ink);background:var(--hover)}
   .foot .sep{opacity:.45}
   /* témoin de synchro : discret, il ne s'affiche que si la synchro est réglée */
-  #transfert-btn{display:inline-flex;align-items:center;gap:6px}
-  #transfert-btn::after{content:"";width:6px;height:6px;border-radius:99px;display:none;flex:0 0 auto}
-  #transfert-btn[data-sync="ok"]::after{display:block;background:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
-  #transfert-btn[data-sync="ko"]::after{display:block;background:var(--danger);box-shadow:0 0 0 3px var(--danger-soft)}
+  /* témoin de synchro : discret, il ne s'affiche que si la synchro est réglée */
+  #sync-btn{display:inline-flex;align-items:center;gap:6px}
+  #sync-btn::after{content:"";width:6px;height:6px;border-radius:99px;display:none;flex:0 0 auto}
+  #sync-btn[data-sync="ok"]::after{display:block;background:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  #sync-btn[data-sync="ko"]::after{display:block;background:var(--danger);box-shadow:0 0 0 3px var(--danger-soft)}
   /* projets terminés, rangés dans le pied de page */
   #fini{display:inline-flex;align-items:center;gap:5px;flex-wrap:wrap}
   .foot .fin{
@@ -592,32 +593,42 @@
   <span id="reprendre-sep" class="sep" hidden>·</span>
   <button id="purge" type="button">Vider les tâches barrées</button>
   <span class="sep">·</span>
-  <button id="transfert-btn" type="button">Transfert / Synchro</button>
+  <button id="sync-btn" type="button">Synchroniser maintenant</button>
   <span id="fini"></span>
   <span id="storageNote" hidden></span>
 </footer>
 
-<div class="modale" id="transfert" hidden>
+<div class="modale" id="options" hidden>
   <div class="modale-boite">
-    <h2>Transférer mes tâches</h2>
+    <h2>Options</h2>
+
+    <p class="modale-sous-titre">Affichage</p>
     <p class="modale-note">
-      Chaque appareil garde ses propres tâches. Pour les recopier d'un appareil à l'autre :
-      <b>1)</b> copie les données ici, <b>2)</b> envoie-les toi (mail, WhatsApp…),
-      <b>3)</b> colle-les dans la case sur l'autre appareil et importe.
+      Ces deux réglages restent sur <b>cet appareil</b> : tu peux garder le tableau classique
+      sur l'ordinateur et les cartes sur le téléphone.
     </p>
-    <div class="modale-actions">
-      <button id="tr-copier" type="button">Copier mes données</button>
-      <button id="tr-fichier" type="button">Télécharger un fichier</button>
+    <div class="choix">
+      <button type="button" class="op-mode" data-mode="tableau">
+        <span class="apercu">
+          <i style="width:5px;height:22px"></i><i style="width:5px;height:15px"></i>
+          <i style="width:5px;height:19px"></i><i style="width:5px;height:11px"></i>
+        </span>
+        <span class="etiq">Tableau</span>
+      </button>
+      <button type="button" class="op-mode" data-mode="cartes">
+        <span class="apercu"><i style="width:36px;height:22px;border-radius:6px"></i></span>
+        <span class="etiq">Cartes</span>
+      </button>
     </div>
-    <textarea id="tr-zone" placeholder="Colle ici les données copiées depuis l'autre appareil…" spellcheck="false"></textarea>
-    <div class="modale-actions">
-      <button id="tr-importer" type="button">Importer ce qui est collé</button>
-      <button id="tr-ouvrir" type="button">Choisir un fichier…</button>
+    <p class="modale-sous-titre">Taille du texte</p>
+    <div class="tailles">
+      <button type="button" class="op-taille" data-taille="normal">Normal</button>
+      <button type="button" class="op-taille" data-taille="grand">Grand</button>
+      <button type="button" class="op-taille" data-taille="max">Maxi</button>
     </div>
-    <button class="modale-fermer" id="tr-fermer" type="button">Fermer</button>
-    <input type="file" id="tr-input" accept="application/json,.json,text/plain" hidden>
 
     <div class="modale-sep"></div>
+
     <h2>Synchronisation automatique</h2>
     <p class="modale-note">
       Pour que ton PC et ton téléphone aient <b>toujours les mêmes tâches</b>, sans rien faire.
@@ -641,6 +652,27 @@
     <p class="modale-etat" id="sy-etat">Non configurée</p>
     <p class="modale-etat" id="sy-compte"></p>
     <button class="modale-fermer" id="sy-restaurer" type="button" hidden>Restaurer la version d'avant la dernière synchro</button>
+
+    <div class="modale-sep"></div>
+
+    <h2>Transférer mes tâches à la main</h2>
+    <p class="modale-note">
+      Utile seulement si tu ne veux pas de synchro automatique. Chaque appareil garde ses propres
+      tâches : <b>1)</b> copie les données ici, <b>2)</b> envoie-les toi (mail, WhatsApp…),
+      <b>3)</b> colle-les dans la case sur l'autre appareil et importe.
+    </p>
+    <div class="modale-actions">
+      <button id="tr-copier" type="button">Copier mes données</button>
+      <button id="tr-fichier" type="button">Télécharger un fichier</button>
+    </div>
+    <textarea id="tr-zone" placeholder="Colle ici les données copiées depuis l'autre appareil…" spellcheck="false"></textarea>
+    <div class="modale-actions">
+      <button id="tr-importer" type="button">Importer ce qui est collé</button>
+      <button id="tr-ouvrir" type="button">Choisir un fichier…</button>
+    </div>
+    <input type="file" id="tr-input" accept="application/json,.json,text/plain" hidden>
+
+    <button class="modale-fermer" id="op-fermer" type="button" style="margin-top:14px">Fermer</button>
   </div>
 </div>
 
@@ -654,37 +686,6 @@
     <p class="cel-kicker">4 / 4 projets</p>
     <p class="cel-title">Tout est <em class="serif">fait</em>.</p>
     <p class="cel-sub">Les quatre projets sont terminés. Clique pour fermer.</p>
-  </div>
-</div>
-
-<div class="modale" id="options" hidden>
-  <div class="modale-boite">
-    <h2>Options d'affichage</h2>
-    <p class="modale-note">
-      Ces deux réglages restent sur <b>cet appareil</b> : tu peux garder le tableau classique
-      sur l'ordinateur et les cartes sur le téléphone.
-    </p>
-    <p class="modale-sous-titre">Affichage</p>
-    <div class="choix">
-      <button type="button" class="op-mode" data-mode="tableau">
-        <span class="apercu">
-          <i style="width:5px;height:22px"></i><i style="width:5px;height:15px"></i>
-          <i style="width:5px;height:19px"></i><i style="width:5px;height:11px"></i>
-        </span>
-        <span class="etiq">Tableau</span>
-      </button>
-      <button type="button" class="op-mode" data-mode="cartes">
-        <span class="apercu"><i style="width:36px;height:22px;border-radius:6px"></i></span>
-        <span class="etiq">Cartes</span>
-      </button>
-    </div>
-    <p class="modale-sous-titre">Taille du texte</p>
-    <div class="tailles">
-      <button type="button" class="op-taille" data-taille="normal">Normal</button>
-      <button type="button" class="op-taille" data-taille="grand">Grand</button>
-      <button type="button" class="op-taille" data-taille="max">Maxi</button>
-    </div>
-    <button class="modale-fermer" id="op-fermer" type="button" style="margin-top:14px">Fermer</button>
   </div>
 </div>
 
@@ -1969,7 +1970,6 @@
   /* ------------------------------------------------------------------
      TRANSFÉRER MES TÂCHES D'UN APPAREIL À L'AUTRE
   ------------------------------------------------------------------ */
-  var modale = document.getElementById("transfert");
   var trZone = document.getElementById("tr-zone");
 
   function donneesTexte(){
@@ -1999,14 +1999,19 @@
     location.reload();
   }
 
-  document.getElementById("transfert-btn").addEventListener("click", function(){
-    trZone.value = "";
-    modale.hidden = false;
-  });
-  document.getElementById("tr-fermer").addEventListener("click", function(){ modale.hidden = true; });
-  modale.addEventListener("click", function(ev){ if (ev.target === modale) modale.hidden = true; });
-  document.addEventListener("keydown", function(ev){
-    if (ev.key === "Escape" && !modale.hidden) modale.hidden = true;
+  /* Le bouton du bas synchronise directement, sans ouvrir de fenêtre.
+     S'il n'y a rien de configuré, on ouvre les Options pour le faire. */
+  document.getElementById("sync-btn").addEventListener("click", function(){
+    if (!synchroPrete()) {
+      modaleOptions.hidden = false;
+      montrerEtat();
+      showToast("Renseigne d'abord ton identifiant et ta clé", false, 3600);
+      return;
+    }
+    montrerEtat();
+    synchroniser().then(function(){
+      showToast(messageEtat || "Synchronisation terminée", false, 2800);
+    });
   });
 
   document.getElementById("tr-copier").addEventListener("click", function(){
@@ -2098,7 +2103,9 @@
     var h = Math.round(min / 60);
     return "il y a " + h + " heure" + (h > 1 ? "s" : "");
   }
+  var messageEtat = "";
   function direEtat(texte, genre){
+    messageEtat = texte || "";
     if (!syEtat) return;
     syEtat.textContent = texte;
     syEtat.className = "modale-etat" + (genre ? " " + genre : "");
@@ -2107,7 +2114,7 @@
 
   /* petit témoin de couleur sur le bouton du bas : vert = synchro en place */
   function montrerFeu(etat){
-    var btn = document.getElementById("transfert-btn");
+    var btn = document.getElementById("sync-btn");
     if (!btn) return;
     if (etat) btn.dataset.sync = etat;
     else btn.dataset.sync = synchronise() ? "ok" : "off";
@@ -2406,6 +2413,8 @@
 
   document.getElementById("options-btn").addEventListener("click", function(){
     majBoutonsOptions();
+    montrerEtat();                       /* l'état de la synchro est rafraîchi à l'ouverture */
+    trZone.value = "";                   /* on repart d'une case vide pour le transfert à la main */
     modaleOptions.hidden = false;
   });
   document.getElementById("op-fermer").addEventListener("click", function(){ modaleOptions.hidden = true; });
