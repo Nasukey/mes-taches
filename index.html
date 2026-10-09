@@ -69,17 +69,23 @@
     }
   }
 
-  /* une couleur par projet */
-  .c0{--accent:#137a5f;--accent-2:#3ea98a;--accent-soft:#e7f3ef;--accent-ink:#0d5c47}
-  .c1{--accent:#3b52c4;--accent-2:#6b7ee6;--accent-soft:#eaedfb;--accent-ink:#2c3f9c}
-  .c2{--accent:#a96a12;--accent-2:#d69a3c;--accent-soft:#fbf1e0;--accent-ink:#845110}
-  .c3{--accent:#a03464;--accent-2:#d0688f;--accent-soft:#fbeaf1;--accent-ink:#7d2750}
+  /* une couleur par projet — la teinte est le fond très clair de la colonne,
+     qui reste dans la couleur du projet pour qu'on les distingue d'un coup d'œil */
+  .c0{--accent:#137a5f;--accent-2:#3ea98a;--accent-soft:#e7f3ef;--accent-ink:#0d5c47;--teinte:#eef6f3;--teinte-forte:#dceee8}
+  .c1{--accent:#3b52c4;--accent-2:#6b7ee6;--accent-soft:#eaedfb;--accent-ink:#2c3f9c;--teinte:#eff2fc;--teinte-forte:#dee4fa}
+  .c2{--accent:#a96a12;--accent-2:#d69a3c;--accent-soft:#fbf1e0;--accent-ink:#845110;--teinte:#fcf4e7;--teinte-forte:#f8e9cd}
+  .c3{--accent:#a03464;--accent-2:#d0688f;--accent-soft:#fbeaf1;--accent-ink:#7d2750;--teinte:#fcecf2;--teinte-forte:#f8dbe8}
   @media (prefers-color-scheme: dark){
-    .c0{--accent:#3ecfa4;--accent-2:#8ce4c7;--accent-soft:#13241f;--accent-ink:#8ce4c7}
-    .c1{--accent:#8496ff;--accent-2:#b3bfff;--accent-soft:#171a2c;--accent-ink:#b3bfff}
-    .c2{--accent:#e0ab55;--accent-2:#f0cd8d;--accent-soft:#241d12;--accent-ink:#f0cd8d}
-    .c3{--accent:#e08cb0;--accent-2:#f0b6ce;--accent-soft:#28161f;--accent-ink:#f0b6ce}
+    .c0{--accent:#3ecfa4;--accent-2:#8ce4c7;--accent-soft:#13241f;--accent-ink:#8ce4c7;--teinte:#101d18;--teinte-forte:#0b2b21}
+    .c1{--accent:#8496ff;--accent-2:#b3bfff;--accent-soft:#171a2c;--accent-ink:#b3bfff;--teinte:#14172a;--teinte-forte:#1a1f3d}
+    .c2{--accent:#e0ab55;--accent-2:#f0cd8d;--accent-soft:#241d12;--accent-ink:#f0cd8d;--teinte:#1e1810;--teinte-forte:#2b2210}
+    .c3{--accent:#e08cb0;--accent-2:#f0b6ce;--accent-soft:#28161f;--accent-ink:#f0b6ce;--teinte:#1e121a;--teinte-forte:#2c1421}
   }
+  /* force de la teinte des projets, réglable dans les Options */
+  .col{background:var(--teinte,var(--surface))}
+  [data-teinte="aucune"] .col{background:var(--surface)}
+  [data-teinte="legere"] .col{background:var(--teinte,var(--surface))}
+  [data-teinte="marquee"] .col{background:var(--teinte-forte,var(--teinte,var(--surface)))}
 
   *{box-sizing:border-box}
   html{-webkit-text-size-adjust:100%;height:100%}
@@ -125,7 +131,7 @@
   .board{display:grid;grid-template-columns:repeat(var(--cols,4),minmax(0,1fr));gap:14px;flex:1;min-height:0}
   .col{
     position:relative;overflow:hidden;
-    background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+    background:var(--teinte,var(--surface));border:1px solid var(--line);border-radius:var(--radius);
     box-shadow:var(--shadow);
     padding:18px 14px 12px;
     display:flex;flex-direction:column;min-height:0;
@@ -388,14 +394,6 @@
     background:var(--veil);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
     animation:fade .3s ease both;
   }
-  .modale[hidden]{display:none}
-  .modale-boite{
-    width:min(560px,100%);max-height:86vh;overflow-y:auto;text-align:center;
-    background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
-    box-shadow:var(--shadow-hi);padding:22px 20px calc(18px + env(safe-area-inset-bottom, 0px));
-    animation:celIn .45s var(--bounce) both;
-  }
-  .modale-boite h2{margin:0 0 6px;font-size:calc(15px*var(--ech));font-weight:600;letter-spacing:-.02em}
   .modale-note{margin:0 0 16px;font-size:calc(11.5px*var(--ech));line-height:1.6;color:var(--muted)}
   .modale-actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:12px}
   .modale-actions button{
@@ -529,6 +527,38 @@
   }
   .tailles button.on{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
 
+  /* ---------------- la page Options (une vraie page, pas une fenêtre) ---------------- */
+  .page{
+    flex:1;min-height:0;overflow-y:auto;text-align:left;
+    width:100%;max-width:680px;margin:0 auto;
+    padding:calc(16px + env(safe-area-inset-top, 0px)) 20px calc(36px + env(safe-area-inset-bottom, 0px));
+  }
+  .page-h{
+    position:sticky;top:0;z-index:2;
+    display:flex;align-items:center;gap:12px;
+    padding:4px 0 14px;margin-bottom:12px;
+    background:linear-gradient(var(--bg) 76%,transparent);
+  }
+  .page h2{margin:0 0 8px;font-size:calc(15px*var(--ech));font-weight:700;letter-spacing:-.02em}
+  .page-h h2{margin:0;font-size:calc(21px*var(--ech));font-weight:700;letter-spacing:-.025em;flex:1;order:2;text-align:right}
+  .page-h button{
+    order:1;appearance:none;cursor:pointer;font:inherit;
+    font-size:calc(11.5px*var(--ech));font-weight:600;color:var(--ink-2);
+    background:var(--surface);border:1.5px solid var(--line);
+    border-radius:99px;padding:calc(7px*var(--ech)) 15px;
+    transition:border-color .2s ease,color .2s ease,transform .16s var(--ease);
+  }
+  .page-h button:hover{border-color:var(--accent);color:var(--accent);transform:translateX(-2px)}
+  .page .modale-note{margin:0 0 18px;max-width:60ch}
+  .page .modale-actions{justify-content:flex-start}
+  .page .modale-champs{max-width:420px}
+  .page .modale-fermer{display:block;margin-left:auto;margin-right:auto}
+  .page .choix{max-width:420px}
+  .page .tailles{justify-content:flex-start}
+  @media (max-width:720px){
+    .page{padding-left:16px;padding-right:16px}
+  }
+
   /* ---------------- adaptatif ---------------- */
   @media (max-width:900px){
     body{display:block;overflow:auto;height:auto;min-height:100%}
@@ -560,8 +590,11 @@
     /* sur un appareil tactile (téléphone, tablette) : texte un cran plus grand */
     var tactile = window.matchMedia && window.matchMedia("(hover: none) and (pointer: coarse)").matches;
     d.setAttribute("data-taille", o.taille || (tactile ? "grand" : "normal"));
+    d.setAttribute("data-teinte",
+      (o.teinte === "aucune" || o.teinte === "marquee") ? o.teinte : "legere");
   } catch (e) {
     document.documentElement.setAttribute("data-taille", "normal");
+    document.documentElement.setAttribute("data-teinte", "legere");
   }
 })();
 </script>
@@ -587,10 +620,6 @@
 <footer class="foot">
   <button id="options-btn" type="button">Options</button>
   <span class="sep">·</span>
-  <button id="demain" type="button">Transférer à demain</button>
-  <span class="sep">·</span>
-  <button id="reprendre" type="button" hidden>Reprendre les tâches de demain</button>
-  <span id="reprendre-sep" class="sep" hidden>·</span>
   <button id="purge" type="button">Vider les tâches barrées</button>
   <span class="sep">·</span>
   <button id="sync-btn" type="button">Synchroniser maintenant</button>
@@ -598,13 +627,15 @@
   <span id="storageNote" hidden></span>
 </footer>
 
-<div class="modale" id="options" hidden>
-  <div class="modale-boite">
+<section class="page" id="page-options" hidden>
+  <div class="page-h">
+    <button id="op-retour" type="button">← Retour</button>
     <h2>Options</h2>
+  </div>
 
     <p class="modale-sous-titre">Affichage</p>
     <p class="modale-note">
-      Ces deux réglages restent sur <b>cet appareil</b> : tu peux garder le tableau classique
+      Ces réglages restent sur <b>cet appareil</b> : tu peux garder le tableau classique
       sur l'ordinateur et les cartes sur le téléphone.
     </p>
     <div class="choix">
@@ -625,6 +656,16 @@
       <button type="button" class="op-taille" data-taille="normal">Normal</button>
       <button type="button" class="op-taille" data-taille="grand">Grand</button>
       <button type="button" class="op-taille" data-taille="max">Maxi</button>
+    </div>
+    <p class="modale-sous-titre" style="margin-top:18px">Teinte des projets</p>
+    <p class="modale-note" style="margin-bottom:10px">
+      Le fond de chaque colonne prend une version très claire de la couleur de son projet.
+      « Aucune » remet tous les fonds en blanc (ou en sombre la nuit).
+    </p>
+    <div class="tailles">
+      <button type="button" class="op-teinte" data-teinte="aucune">Aucune</button>
+      <button type="button" class="op-teinte" data-teinte="legere">Légère</button>
+      <button type="button" class="op-teinte" data-teinte="marquee">Marquée</button>
     </div>
 
     <div class="modale-sep"></div>
@@ -672,9 +713,8 @@
     </div>
     <input type="file" id="tr-input" accept="application/json,.json,text/plain" hidden>
 
-    <button class="modale-fermer" id="op-fermer" type="button" style="margin-top:14px">Fermer</button>
-  </div>
-</div>
+    <button class="modale-fermer" id="op-fermer" type="button" style="margin-top:18px">Retour aux tâches</button>
+</section>
 
 <div class="toast" id="toast" role="status" aria-live="polite">
   <span id="toastMsg">Tâche supprimée</span>
@@ -722,7 +762,7 @@
      tableau (4 colonnes) ou cartes (un projet à la fois) + taille du texte
   ------------------------------------------------------------------ */
   var CLE_OPTIONS = "taches.4projets.options";
-  var options = { affichage: "tableau", taille: "normal" };
+  var options = { affichage: "tableau", taille: "normal", teinte: "legere" };
   try {
     var opLues = JSON.parse(localStorage.getItem(CLE_OPTIONS) || "{}") || {};
     if (opLues.affichage === "cartes") options.affichage = "cartes";
@@ -733,11 +773,15 @@
          (plus grande sur téléphone) */
       options.taille = document.documentElement.getAttribute("data-taille") || "normal";
     }
+    if (opLues.teinte === "aucune" || opLues.teinte === "legere" || opLues.teinte === "marquee") {
+      options.teinte = opLues.teinte;
+    }
   } catch (e) {}
 
   function appliquerOptions(){
     document.documentElement.setAttribute("data-affichage", options.affichage);
     document.documentElement.setAttribute("data-taille", options.taille);
+    document.documentElement.setAttribute("data-teinte", options.teinte);
   }
   function garderOptions(){
     try { localStorage.setItem(CLE_OPTIONS, JSON.stringify(options)); } catch (e) {}
@@ -1228,52 +1272,23 @@
   /* ------------------------------------------------------------------
      TRANSFÉRER À DEMAIN (5e liste, non visible sur le tableau)
   ------------------------------------------------------------------ */
-  function transfererADemain(){
-    var n = 0;
-    state.projects.forEach(function(p, i){
-      p.tasks = p.tasks.filter(function(t){
-        if (t.done) return true;                        /* ce qui est fait reste sur le tableau */
-        state.demain.push({ id: t.id, text: t.text, projet: i, niv: Number(t.niv) || 0 });
-        n++;
-        return false;
-      });
-    });
-    if (!n) { showToast("Aucune tâche en attente \u00e0 transf\u00e9rer", false, 2400); return; }
-    save();
-    renderBoard();
-    updateStats();
-    montrerReprendre();
-    showToast(n + " t\u00e2che" + (n > 1 ? "s" : "") + " gard\u00e9e" + (n > 1 ? "s" : "") + " pour demain", false, 3200);
-  }
-
-  function reprendreDemain(){
-    if (!state.demain.length) return;
-    var n = 0;
+  /* La 5e liste « pour demain » a été retirée : elle n'était pas utile.
+     Si des tâches y étaient encore rangées sur un appareil, on les remet
+     une bonne fois dans leur projet — rien n'est perdu. */
+  function recupererDemain(){
+    if (!state.demain || !state.demain.length) return;
+    var n = state.demain.length;
     state.demain.forEach(function(d){
       var i = Number(d.projet);
       if (!(i >= 0 && i < state.projects.length)) i = 0;
       state.projects[i].tasks.push({ id: d.id || uid(), text: d.text, done: false, doneAt: 0,
                                      niv: Number(d.niv) || 0 });
       state.projects[i].fini = false;
-      n++;
     });
     state.demain = [];
     state.projects.forEach(function(_, i){ nettoyerNiveaux(i); });
     save();
-    renderBoard();
-    updateStats();
-    montrerReprendre();
     showToast(n + " t\u00e2che" + (n > 1 ? "s" : "") + " revenue" + (n > 1 ? "s" : "") + " dans les projets", false, 3200);
-  }
-
-  function montrerReprendre(){
-    var n = state.demain ? state.demain.length : 0;
-    var b = document.getElementById("reprendre");
-    var s = document.getElementById("reprendre-sep");
-    if (!b) return;
-    b.hidden = !n;
-    if (s) s.hidden = !n;
-    b.textContent = "Reprendre les " + n + " t\u00e2che" + (n > 1 ? "s" : "") + " de demain";
   }
 
   /* ------------------------------------------------------------------
@@ -1999,13 +2014,12 @@
     location.reload();
   }
 
-  /* Le bouton du bas synchronise directement, sans ouvrir de fenêtre.
+  /* Le bouton du bas synchronise directement, sans ouvrir de page.
      S'il n'y a rien de configuré, on ouvre les Options pour le faire. */
   document.getElementById("sync-btn").addEventListener("click", function(){
     if (!synchroPrete()) {
-      modaleOptions.hidden = false;
-      montrerEtat();
       showToast("Renseigne d'abord ton identifiant et ta clé", false, 3600);
+      ouvrirOptions();
       return;
     }
     montrerEtat();
@@ -2249,7 +2263,6 @@
     celebrated = false;
     renderBoard();
     updateStats();
-    montrerReprendre();
     if (syRestaurer) syRestaurer.hidden = false;
     showToast(aPousser ? "Fusion avec l'autre appareil" : "T\u00e2ches re\u00e7ues de l'autre appareil", false, 2600);
   }
@@ -2394,34 +2407,55 @@
   /* ------------------------------------------------------------------
      BOUTONS DU PIED DE PAGE
   ------------------------------------------------------------------ */
-  document.getElementById("demain").addEventListener("click", transfererADemain);
-  document.getElementById("reprendre").addEventListener("click", reprendreDemain);
 
   /* ------------------------------------------------------------------
-     FENÊTRE OPTIONS
+     PAGE OPTIONS (une vraie page, pas une fenêtre)
   ------------------------------------------------------------------ */
-  var modaleOptions = document.getElementById("options");
+  var pageOptions = document.getElementById("page-options");
+  var vueTaches = [
+    document.querySelector(".topbar"),
+    document.querySelector("main.wrap"),
+    document.querySelector("footer.foot")
+  ];
 
   function majBoutonsOptions(){
-    Array.prototype.forEach.call(modaleOptions.querySelectorAll(".op-mode"), function(b){
+    Array.prototype.forEach.call(pageOptions.querySelectorAll(".op-mode"), function(b){
       b.classList.toggle("on", b.dataset.mode === options.affichage);
     });
-    Array.prototype.forEach.call(modaleOptions.querySelectorAll(".op-taille"), function(b){
+    Array.prototype.forEach.call(pageOptions.querySelectorAll(".op-taille"), function(b){
       b.classList.toggle("on", b.dataset.taille === options.taille);
+    });
+    Array.prototype.forEach.call(pageOptions.querySelectorAll(".op-teinte"), function(b){
+      b.classList.toggle("on", b.dataset.teinte === options.teinte);
     });
   }
 
-  document.getElementById("options-btn").addEventListener("click", function(){
+  function ouvrirOptions(){
     majBoutonsOptions();
     montrerEtat();                       /* l'état de la synchro est rafraîchi à l'ouverture */
     trZone.value = "";                   /* on repart d'une case vide pour le transfert à la main */
-    modaleOptions.hidden = false;
-  });
-  document.getElementById("op-fermer").addEventListener("click", function(){ modaleOptions.hidden = true; });
-  modaleOptions.addEventListener("click", function(ev){
-    if (ev.target === modaleOptions) { modaleOptions.hidden = true; return; }
+    vueTaches.forEach(function(el){ if (el) el.hidden = true; });
+    pageOptions.hidden = false;
+    pageOptions.scrollTop = 0;
+  }
 
-    var mode = ev.target.closest ? ev.target.closest(".op-mode") : null;
+  function fermerOptions(){
+    pageOptions.hidden = true;
+    vueTaches.forEach(function(el){ if (el) el.hidden = false; });
+  }
+
+  document.getElementById("options-btn").addEventListener("click", ouvrirOptions);
+  document.getElementById("op-retour").addEventListener("click", fermerOptions);
+  document.getElementById("op-fermer").addEventListener("click", fermerOptions);
+  document.addEventListener("keydown", function(ev){
+    if (ev.key === "Escape" && !pageOptions.hidden) fermerOptions();
+  });
+
+  /* un clic sur la page : on regarde quel réglage a été touché */
+  pageOptions.addEventListener("click", function(ev){
+    if (!ev.target.closest) return;
+
+    var mode = ev.target.closest(".op-mode");
     if (mode) {
       options.affichage = mode.dataset.mode;
       garderOptions();
@@ -2431,26 +2465,31 @@
       majPastilles();
       return;
     }
-    var taille = ev.target.closest ? ev.target.closest(".op-taille") : null;
+    var taille = ev.target.closest(".op-taille");
     if (taille) {
       options.taille = taille.dataset.taille;
       garderOptions();
       appliquerOptions();
       majBoutonsOptions();
       majPastilles();
+      return;
     }
-  });
-  document.addEventListener("keydown", function(ev){
-    if (ev.key === "Escape" && !modaleOptions.hidden) modaleOptions.hidden = true;
+    var teinte = ev.target.closest(".op-teinte");
+    if (teinte) {
+      options.teinte = teinte.dataset.teinte;
+      garderOptions();
+      appliquerOptions();
+      majBoutonsOptions();
+    }
   });
 
   /* ------------------------------------------------------------------
      DÉMARRAGE
   ------------------------------------------------------------------ */
   appliquerOptions();
+  recupererDemain();      /* si des tâches étaient rangées « pour demain », on les remet dans leur projet */
   renderBoard();
   updateStats();
-  montrerReprendre();
   montrerEtat();
   montrerFeu();
   if (synchroPrete()) synchroniser();     /* au lancement : on récupère ce qui vient de l'autre appareil */

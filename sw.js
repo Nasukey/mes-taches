@@ -1,6 +1,6 @@
 /* Service worker : met l'application en cache pour qu'elle s'ouvre sans réseau.
    Change le numéro de version ci-dessous quand tu modifies index.html. */
-var CACHE = "taches-4-projets-v12";
+var CACHE = "taches-4-projets-v14";
 
 var FICHIERS = [
   "./",
