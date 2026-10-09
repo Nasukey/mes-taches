@@ -69,17 +69,27 @@
     }
   }
 
-  /* une couleur par projet — la teinte est le fond très clair de la colonne,
-     qui reste dans la couleur du projet pour qu'on les distingue d'un coup d'œil */
-  .c0{--accent:#137a5f;--accent-2:#3ea98a;--accent-soft:#e7f3ef;--accent-ink:#0d5c47;--teinte:#eef6f3;--teinte-forte:#dceee8}
-  .c1{--accent:#3b52c4;--accent-2:#6b7ee6;--accent-soft:#eaedfb;--accent-ink:#2c3f9c;--teinte:#eff2fc;--teinte-forte:#dee4fa}
-  .c2{--accent:#a96a12;--accent-2:#d69a3c;--accent-soft:#fbf1e0;--accent-ink:#845110;--teinte:#fcf4e7;--teinte-forte:#f8e9cd}
-  .c3{--accent:#a03464;--accent-2:#d0688f;--accent-soft:#fbeaf1;--accent-ink:#7d2750;--teinte:#fcecf2;--teinte-forte:#f8dbe8}
+  /* Une couleur de base par projet, et tout le reste s'en déduit : la version
+     claire pour le jour, la sombre pour la nuit. Le script pose ces valeurs
+     sur chaque élément (colonne, pastille, étiquette de projet fini) ; ici on
+     ne fait que les brancher. */
+  .col,.past,.foot .fin{
+    --accent:var(--jour-accent,#15151b);
+    --accent-2:var(--jour-accent-2,#52525e);
+    --accent-soft:var(--jour-soft,#f0f0ec);
+    --accent-ink:var(--jour-ink,#15151b);
+    --teinte:var(--jour-teinte,#ffffff);
+    --teinte-forte:var(--jour-teinte-forte,#f2f2ee);
+  }
   @media (prefers-color-scheme: dark){
-    .c0{--accent:#3ecfa4;--accent-2:#8ce4c7;--accent-soft:#13241f;--accent-ink:#8ce4c7;--teinte:#101d18;--teinte-forte:#0b2b21}
-    .c1{--accent:#8496ff;--accent-2:#b3bfff;--accent-soft:#171a2c;--accent-ink:#b3bfff;--teinte:#14172a;--teinte-forte:#1a1f3d}
-    .c2{--accent:#e0ab55;--accent-2:#f0cd8d;--accent-soft:#241d12;--accent-ink:#f0cd8d;--teinte:#1e1810;--teinte-forte:#2b2210}
-    .c3{--accent:#e08cb0;--accent-2:#f0b6ce;--accent-soft:#28161f;--accent-ink:#f0b6ce;--teinte:#1e121a;--teinte-forte:#2c1421}
+    .col,.past,.foot .fin{
+      --accent:var(--nuit-accent,#ededf0);
+      --accent-2:var(--nuit-accent-2,#a9a9b4);
+      --accent-soft:var(--nuit-soft,#1e1f25);
+      --accent-ink:var(--nuit-ink,#ededf0);
+      --teinte:var(--nuit-teinte,#101114);
+      --teinte-forte:var(--nuit-teinte-forte,#1a1c22);
+    }
   }
   /* force de la teinte des projets, réglable dans les Options */
   .col{background:var(--teinte,var(--surface))}
@@ -243,16 +253,17 @@
   .txt.edition:empty::before{
     content:"Nouvelle tâche\2026";color:var(--muted);pointer-events:none;
   }
-  /* bouton copier, une ligne à la fois */
-  .cop{
+  /* bouton copier, et bouton ajouter en dessous, sur chaque ligne */
+  .cop,.plus{
     appearance:none;border:0;background:none;color:var(--muted);cursor:pointer;
     width:calc(20px*var(--ech));height:calc(24px*var(--ech));padding:0;border-radius:7px;
     flex:0 0 auto;margin-top:5px;display:grid;place-items:center;opacity:.28;
     transition:opacity .2s ease,color .2s ease,background .2s ease;
   }
-  .cop svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
-  .task:hover .cop{opacity:1}
-  .cop:hover{color:var(--accent);background:var(--accent-soft)}
+  .cop svg,.plus svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+  .plus svg{stroke-width:2.3}
+  .task:hover .cop,.task:hover .plus{opacity:1}
+  .cop:hover,.plus:hover{color:var(--accent);background:var(--accent-soft)}
   .cop.copie{animation:copie .55s ease-out}
   /* la poignée : on glisse la ligne pour la déplacer */
   .drag{
@@ -439,7 +450,7 @@
   /* ---------------- téléphone : pas de survol ---------------- */
   @media (hover: none){
     .drag{opacity:.45}
-    .cop{opacity:.5}
+    .cop,.plus{opacity:.5}
     .txt{cursor:default}
     .col:hover{transform:none;box-shadow:var(--shadow)}
     .modale-actions button:hover{border-color:var(--line);color:var(--ink-2);transform:none}
@@ -527,6 +538,42 @@
   }
   .tailles button.on{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
 
+  /* ---------------- réglage des projets (nom, couleur, ajout, suppression) ---------------- */
+  .projets{display:grid;gap:8px;max-width:520px}
+  .projet{
+    display:flex;align-items:center;gap:10px;
+    background:var(--surface);border:1px solid var(--line);border-radius:14px;
+    padding:8px 10px 8px 8px;
+  }
+  .projet .pastille{
+    appearance:none;border:0;padding:0;cursor:pointer;flex:0 0 auto;
+    width:calc(28px*var(--ech));height:calc(28px*var(--ech));border-radius:9px;
+    box-shadow:inset 0 0 0 1px rgba(0,0,0,.10);
+  }
+  .projet .pastille::-webkit-color-swatch-wrapper{padding:0}
+  .projet .pastille::-webkit-color-swatch{border:0;border-radius:9px}
+  .projet .pastille::-moz-color-swatch{border:0;border-radius:9px}
+  .projet input[type="text"]{
+    appearance:none;flex:1;min-width:0;font:inherit;
+    font-size:calc(13px*var(--ech));font-weight:600;color:var(--ink);
+    background:transparent;border:0;border-bottom:1.5px solid transparent;
+    padding:calc(5px*var(--ech)) 2px;outline:none;
+    transition:border-color .2s ease;
+  }
+  .projet input[type="text"]:focus{border-bottom-color:var(--accent)}
+  .projet .sup{
+    appearance:none;border:0;background:none;cursor:pointer;flex:0 0 auto;
+    font:inherit;font-size:calc(15px*var(--ech));line-height:1;color:var(--muted);
+    width:calc(28px*var(--ech));height:calc(28px*var(--ech));border-radius:9px;
+    display:grid;place-items:center;
+    transition:color .2s ease,background .2s ease,opacity .2s ease;
+  }
+  .projet .sup:hover{color:var(--danger);background:var(--danger-soft)}
+  .projet .sup[disabled]{opacity:.25;pointer-events:none}
+  @media (hover: none){
+    .projet input[type="text"]{font-size:16px}
+  }
+
   /* ---------------- la page Options (une vraie page, pas une fenêtre) ---------------- */
   .page{
     flex:1;min-height:0;overflow-y:auto;text-align:left;
@@ -613,7 +660,7 @@
   <section class="panel" id="panel-board">
     <div class="pastilles" id="pastilles" hidden></div>
     <div class="board" id="board"></div>
-    <p class="allgone" id="allgone" hidden>Les quatre projets sont terminés. Clique sur un projet en bas de page pour le rouvrir.</p>
+    <p class="allgone" id="allgone" hidden>Tous les projets sont terminés. Clique sur un projet en bas de page pour le rouvrir.</p>
   </section>
 </main>
 
@@ -670,6 +717,19 @@
 
     <div class="modale-sep"></div>
 
+    <h2>Mes projets</h2>
+    <p class="modale-note">
+      Le <b>nom</b> et la <b>couleur</b> de chaque projet. Sur le tableau, les noms sont
+      verrouillés : tout se règle ici. Tu peux ajouter des projets ou en supprimer —
+      attention, supprimer un projet supprime aussi ses tâches.
+    </p>
+    <div class="projets" id="projets-liste"></div>
+    <div class="modale-actions" style="margin-top:12px">
+      <button id="projet-ajouter" type="button">+ Ajouter un projet</button>
+    </div>
+
+    <div class="modale-sep"></div>
+
     <h2>Synchronisation automatique</h2>
     <p class="modale-note">
       Pour que ton PC et ton téléphone aient <b>toujours les mêmes tâches</b>, sans rien faire.
@@ -692,6 +752,19 @@
     </div>
     <p class="modale-etat" id="sy-etat">Non configurée</p>
     <p class="modale-etat" id="sy-compte"></p>
+
+    <p class="modale-sous-titre" style="margin-top:18px">Quand vérifier</p>
+    <p class="modale-note" style="margin-bottom:10px">
+      À chaque fois que tu reviens sur l'application, elle compare avec l'autre appareil.
+      Chaque vérification coûte <b>une requête</b> chez jsonbin (10 000 pour la vie du compte
+      gratuit) : plus c'est fréquent, plus tes tâches sont à jour, plus ça consomme.
+      Le compteur ci-dessus te dit où tu en es.
+    </p>
+    <div class="tailles">
+      <button type="button" class="op-reverif" data-reverif="tout">À chaque retour</button>
+      <button type="button" class="op-reverif" data-reverif="minute">1 minute</button>
+      <button type="button" class="op-reverif" data-reverif="cinq">5 minutes</button>
+    </div>
     <button class="modale-fermer" id="sy-restaurer" type="button" hidden>Restaurer la version d'avant la dernière synchro</button>
 
     <div class="modale-sep"></div>
@@ -723,9 +796,9 @@
 
 <div class="celebrate" id="celebrate" hidden>
   <div class="cel-card">
-    <p class="cel-kicker">4 / 4 projets</p>
+    <p class="cel-kicker">Tous les projets</p>
     <p class="cel-title">Tout est <em class="serif">fait</em>.</p>
-    <p class="cel-sub">Les quatre projets sont terminés. Clique pour fermer.</p>
+    <p class="cel-sub">Tous les projets sont terminés. Clique pour fermer.</p>
   </div>
 </div>
 
@@ -740,6 +813,11 @@
   ------------------------------------------------------------------ */
   var KEY = "taches.4projets.v1";
   var DEFAULT_NAMES = ["Projet 1", "Projet 2", "Projet 3", "Projet 4"];
+  /* Couleurs de base : les quatre premières sont celles d'origine, les
+     suivantes servent quand on ajoute des projets. */
+  var PALETTE = ["#137a5f", "#3b52c4", "#a96a12", "#a03464",
+                 "#0f7b8a", "#6b3fc4", "#b0442a", "#5c7a12"];
+  var NB_PROJETS_MAX = PALETTE.length;
   var storageOK = true;
   var loadedOK = true;
 
@@ -762,7 +840,7 @@
      tableau (4 colonnes) ou cartes (un projet à la fois) + taille du texte
   ------------------------------------------------------------------ */
   var CLE_OPTIONS = "taches.4projets.options";
-  var options = { affichage: "tableau", taille: "normal", teinte: "legere" };
+  var options = { affichage: "tableau", taille: "normal", teinte: "legere", reverif: "tout" };
   try {
     var opLues = JSON.parse(localStorage.getItem(CLE_OPTIONS) || "{}") || {};
     if (opLues.affichage === "cartes") options.affichage = "cartes";
@@ -776,6 +854,9 @@
     if (opLues.teinte === "aucune" || opLues.teinte === "legere" || opLues.teinte === "marquee") {
       options.teinte = opLues.teinte;
     }
+    if (opLues.reverif === "tout" || opLues.reverif === "minute" || opLues.reverif === "cinq") {
+      options.reverif = opLues.reverif;
+    }
   } catch (e) {}
 
   function appliquerOptions(){
@@ -788,7 +869,69 @@
   }
 
   function uid(){ return Math.random().toString(36).slice(2, 10); }
-  function blank(){ return { projects: DEFAULT_NAMES.map(function(n){ return { name: n, tasks: [], fini: false }; }), demain: [], updatedAt: 0 }; }
+  function blank(){
+    return {
+      projects: DEFAULT_NAMES.map(function(n, i){
+        return { name: n, couleur: PALETTE[i], tasks: [], fini: false };
+      }),
+      demain: [], updatedAt: 0
+    };
+  }
+
+  /* ------------------------------------------------------------------
+     COULEURS DE PROJET
+     Une seule couleur de base est enregistrée par projet ; tout le reste
+     (accent, fond, version nuit) en est déduit par mélange. Les valeurs
+     sont posées sur l'élément, le style se contente de les brancher.
+  ------------------------------------------------------------------ */
+  function couleurValide(x){
+    return (typeof x === "string" && /^#[0-9a-fA-F]{6}$/.test(x)) ? x.toLowerCase() : null;
+  }
+  function couleurProjet(i){
+    var p = state.projects[i];
+    return (p && couleurValide(p.couleur)) || PALETTE[i % PALETTE.length];
+  }
+  function versRgb(hex){
+    return [parseInt(hex.slice(1,3),16), parseInt(hex.slice(3,5),16), parseInt(hex.slice(5,7),16)];
+  }
+  function versHex(r, g, b){
+    var f = function(v){ v = Math.max(0, Math.min(255, Math.round(v))); return (v < 16 ? "0" : "") + v.toString(16); };
+    return "#" + f(r) + f(g) + f(b);
+  }
+  function melange(hex, autre, t){
+    var a = versRgb(hex), b = versRgb(autre);
+    return versHex(a[0] + (b[0] - a[0]) * t,
+                   a[1] + (b[1] - a[1]) * t,
+                   a[2] + (b[2] - a[2]) * t);
+  }
+  var BLANC = "#ffffff", SOMBRE = "#15161a";
+  function teintes(base, nuit){
+    var fond = nuit ? SOMBRE : BLANC;
+    return {
+      accent:  nuit ? melange(base, BLANC, .45) : base,
+      accent2: melange(base, BLANC, nuit ? .70 : .32),
+      soft:    melange(base, fond,  nuit ? .78 : .88),
+      ink:     melange(base, nuit ? BLANC : "#000000", nuit ? .70 : .28),
+      teinte:  melange(base, fond,  nuit ? .90 : .93),
+      forte:   melange(base, fond,  nuit ? .80 : .84)
+    };
+  }
+  function appliquerCouleur(el, base){
+    if (!el || !el.style || !el.style.setProperty) return;
+    var j = teintes(base, false), n = teintes(base, true);
+    el.style.setProperty("--jour-accent", j.accent);
+    el.style.setProperty("--jour-accent-2", j.accent2);
+    el.style.setProperty("--jour-soft", j.soft);
+    el.style.setProperty("--jour-ink", j.ink);
+    el.style.setProperty("--jour-teinte", j.teinte);
+    el.style.setProperty("--jour-teinte-forte", j.forte);
+    el.style.setProperty("--nuit-accent", n.accent);
+    el.style.setProperty("--nuit-accent-2", n.accent2);
+    el.style.setProperty("--nuit-soft", n.soft);
+    el.style.setProperty("--nuit-ink", n.ink);
+    el.style.setProperty("--nuit-teinte", n.teinte);
+    el.style.setProperty("--nuit-teinte-forte", n.forte);
+  }
 
   /* la 5e liste : ce qui a été gardé pour demain, avec son projet d'origine */
   function normaliserDemain(brut){
@@ -800,20 +943,30 @@
                });
   }
 
-  /* remet des données brutes au bon format (utilisé au chargement et à la synchro) */
+  /* remet des données brutes au bon format (chargement, synchro, import).
+     Le NOMBRE de projets est celui enregistré : on peut en ajouter ou en
+     supprimer depuis les Options. */
   function normaliserProjets(brut){
-    return DEFAULT_NAMES.map(function(defName, i){
-      var src = (brut && brut[i]) || {};
-      var name = (typeof src.name === "string" && src.name.trim()) ? src.name : defName;
+    var liste = Array.isArray(brut) ? brut : [];
+    var n = liste.length || DEFAULT_NAMES.length;
+    if (n > NB_PROJETS_MAX) n = NB_PROJETS_MAX;
+    var out = [];
+    for (var i = 0; i < n; i++) {
+      var src = (liste[i] && typeof liste[i] === "object") ? liste[i] : {};
+      var nom = (typeof src.name === "string" && src.name.trim())
+                  ? src.name
+                  : (DEFAULT_NAMES[i] || ("Projet " + (i + 1)));
       var tasks = Array.isArray(src.tasks) ? src.tasks : [];
-      return {
-        name: name,
+      out.push({
+        name: nom,
+        couleur: couleurValide(src.couleur) || PALETTE[i % PALETTE.length],
         tasks: tasks.filter(function(t){ return t && typeof t.text === "string" && t.text.trim(); })
                     .map(function(t){ return { id: t.id || uid(), text: t.text, done: !!t.done, doneAt: t.doneAt || 0,
                                                niv: Math.max(0, Math.min(2, Number(t.niv) || 0)) }; }),
         fini: !!src.fini
-      };
-    });
+      });
+    }
+    return out;
   }
 
   function load(){
@@ -901,7 +1054,8 @@
 
       var b = document.createElement("button");
       b.type = "button";
-      b.className = "fin c" + i + (revealed[i] ? " is-on" : "");
+      b.className = "fin" + (revealed[i] ? " is-on" : "");
+      appliquerCouleur(b, couleurProjet(i));
       b.dataset.i = i;
       b.setAttribute("aria-pressed", revealed[i] ? "true" : "false");
       b.textContent = p.name + " fini";
@@ -1120,17 +1274,58 @@
       drag.setAttribute("aria-label", "Déplacer ou rattacher la tâche (glisser)");
       drag.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14M5 12h14M5 16h14"/></svg>';
 
+      /* Un « + » sur chaque ligne : ajoute une tâche juste en dessous, au même
+         niveau. Ça évite de descendre jusqu'au bouton du bas de la colonne
+         quand le projet est bien rempli — et pour une sous-tâche, la nouvelle
+         reste une sous-tâche. */
+      var plus = document.createElement("button");
+      plus.type = "button";
+      plus.className = "plus";
+      plus.dataset.id = t.id;
+      plus.title = "Ajouter une tâche juste en dessous (même niveau)";
+      plus.setAttribute("aria-label", plus.title);
+      plus.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
+
       li.appendChild(toggle);
       li.appendChild(txt);
+      /* pas de « + » sur une tâche terminée : la nouvelle irait dans le groupe
+         du haut, on ne verrait pas où elle est apparue */
+      if (!t.done) li.appendChild(plus);
       if (cop) li.appendChild(cop);
       li.appendChild(drag);
       ul.appendChild(li);
     });
   }
 
+  /* Insère une tâche vide juste après celle-ci, au même niveau, et ouvre
+     l'édition dessus. Rien n'est enregistré tant qu'on n'a rien écrit :
+     une ligne laissée vide disparaît toute seule. */
+  function ajouterApres(i, id){
+    var liste = state.projects[i].tasks;
+    var k = -1;
+    liste.forEach(function(x, n){ if (x.id === id) k = n; });
+    if (k < 0) return;
+
+    var nv = { id: uid(), text: "", done: false, doneAt: 0, niv: Number(liste[k].niv) || 0 };
+    liste.splice(k + 1, 0, nv);
+    nettoyerNiveaux(i);
+    renderList(i);
+    updateStats();
+
+    var col = colOf(i);
+    var suivant = col ? col.querySelector('.txt[data-id="' + nv.id + '"]') : null;
+    if (suivant) {
+      editer(suivant, i);
+      if (suivant.scrollIntoView) {
+        try { suivant.scrollIntoView({ block: "nearest", behavior: reduceMotion ? "auto" : "smooth" }); } catch (e) {}
+      }
+    }
+  }
+
   function makeColumn(i){
     var col = document.createElement("section");
-    col.className = "col c" + i;
+    col.className = "col";
+    appliquerCouleur(col, couleurProjet(i));
     col.dataset.i = i;
 
     var head = document.createElement("div");
@@ -1138,9 +1333,13 @@
 
     var name = document.createElement("h2");
     name.className = "name";
-    name.contentEditable = "true";
+    /* Le nom est verrouillé sur le tableau : il se change dans les Options
+       (avec la couleur du projet). Ça évite aussi d'entrer en modification
+       sans le vouloir en naviguant au clavier. */
+    name.contentEditable = "false";
     name.spellcheck = false;
-    name.title = "Cliquer pour renommer";
+    name.tabIndex = -1;
+    name.title = "Le nom et la couleur se changent dans les Options";
     name.textContent = state.projects[i].name;
 
     var badge = document.createElement("span");
@@ -1222,7 +1421,8 @@
     visibles.forEach(function(i){
       var b = document.createElement("button");
       b.type = "button";
-      b.className = "past c" + i;
+      b.className = "past";
+      appliquerCouleur(b, couleurProjet(i));
       b.dataset.i = i;
       b.setAttribute("aria-label", state.projects[i].name);
       b.innerHTML = "<i></i><b></b>";
@@ -1299,6 +1499,10 @@
   function cheer(){
     if (celebrated) return;
     celebrated = true;
+    /* le nombre de projets peut changer : on l'écrit au moment de fêter */
+    var n = state.projects.length;
+    var kicker = document.querySelector(".cel-kicker");
+    if (kicker) kicker.textContent = n + " / " + n + " projets";
     celebrate.hidden = false;
     if (!reduceMotion) confetti();
     clearTimeout(cheer._t);
@@ -1489,10 +1693,15 @@
     txt.focus();
 
     txt.onkeydown = function(ev){
-      if (ev.key === "Enter" || ev.keyCode === 13) {
+      var k = ev.key, c = ev.keyCode;
+      /* Entrée, ou la touche « suivant » du clavier du téléphone (souvent Tab) :
+         on valide et on enchaîne sur la ligne suivante, sans laisser le
+         curseur filer vers le projet d'à côté. */
+      if (k === "Enter" || c === 13 || k === "Tab" || c === 9) {
         ev.preventDefault();
+        if (ev.stopPropagation) ev.stopPropagation();
         finirEdition(txt, i, true);
-      } else if (ev.key === "Escape" || ev.keyCode === 27) {
+      } else if (k === "Escape" || c === 27) {
         ev.preventDefault();
         txt.textContent = t.text;                 /* on remet le texte d'origine */
         finirEdition(txt, i, false, true);
@@ -1528,13 +1737,17 @@
     if (annuler) {
       txt.textContent = t.text;
     } else if (!texte) {
-      if (creerLigne) {
-        /* ligne vidée puis Entrée : on la retire, comme un éditeur */
+      /* Rien d'écrit. Deux cas, et dans les deux on retire la ligne :
+         - c'est la ligne suivante qu'on venait de créer (Entrée) ;
+         - c'est une ligne créée vide qu'on abandonne sans rien écrire.
+         Sinon (une vraie tâche dont on a effacé le texte), on remet
+         l'ancien texte : on ne supprime pas une tâche par accident. */
+      if (creerLigne || !t.text) {
         state.projects[i].tasks = state.projects[i].tasks.filter(function(x){ return x.id !== t.id; });
         nettoyerNiveaux(i);
         change = true;
       } else {
-        txt.textContent = t.text;                 /* on ne garde pas une tâche vide */
+        txt.textContent = t.text;
       }
     } else if (texte !== t.text) {
       /* si on écrit une adresse ou un lien, on le rend cliquable ailleurs */
@@ -1622,6 +1835,13 @@
       save();
       updateStats();
       moveTask(i, li, nowDone);
+      return;
+    }
+
+    /* ajouter une tâche juste en dessous */
+    var plus = ev.target.closest(".plus");
+    if (plus) {
+      ajouterApres(i, plus.dataset.id);
       return;
     }
 
@@ -1895,9 +2115,21 @@
       input.focus();
     }
 
+    /* Entrée (ou la touche « suivant » du clavier du téléphone, qui envoie
+       parfois Tab) valide et enchaîne. On garde le curseur dans le champ :
+       sinon il partait sur le titre du projet d'à côté, qu'on se retrouvait
+       en train de modifier sans l'avoir voulu. */
     input.addEventListener("keydown", function(e){
-      if (e.key === "Enter" || e.keyCode === 13) { e.preventDefault(); commit(); }
-      else if (e.key === "Escape" || e.keyCode === 27) { e.preventDefault(); close(); }
+      var k = e.key, c = e.keyCode;
+      if (k === "Enter" || c === 13 || k === "Tab" || c === 9) {
+        e.preventDefault();
+        if (e.stopPropagation) e.stopPropagation();
+        commit();
+        setTimeout(function(){ if (!closed) input.focus(); }, 0);
+      } else if (k === "Escape" || c === 27) {
+        e.preventDefault();
+        close();
+      }
     });
 
     /* collage d'un bloc : on respecte les sauts de ligne (le champ, lui, les écraserait) */
@@ -2282,6 +2514,7 @@
     }).then(function(r){
       if (!r.ok) throw new Error("HTTP " + r.status);
       syncReg.envoi = envoi;                /* mémorisé : on ne renverra pas la même chose pour rien */
+      dernierEnvoiReel = Date.now();
       garderReglages();
       return true;
     });
@@ -2326,12 +2559,12 @@
   function envoyer(){
     clearTimeout(envoiTimer);
     if (!envoiUtile()) return Promise.resolve(false);
-    return pousser().then(function(){
-      dernierEnvoiReel = Date.now();
-      dernierContact = dernierEnvoiReel;
-      direEtat("Synchronisé " + ilYAMinutes(dernierContact), "ok");
-      return true;
-    }).catch(function(e){ direErreur(e); return false; });
+    /* IMPORTANT : on récupère d'abord ce que l'autre appareil a fait, PUIS on
+       envoie. Envoyer directement écrasait une tâche ajoutée entre-temps de
+       l'autre côté : elle disparaissait des deux appareils (le serveur ne
+       contenait plus que notre version). Ça coûte une requête de plus, mais
+       plus aucune tâche ne peut être perdue comme ça. */
+    return synchroniser().then(function(){ return true; });
   }
 
   function planifierEnvoi(){
@@ -2372,16 +2605,18 @@
      - dès qu'on la reprend en main après une pause (un appui, un clic) ;
      - quand le réseau revient ;
      - et on pousse ce qui reste quand on la quitte.
-     Aucun contrôle automatique en arrière-plan : rien ne part tant que tu ne
-     fais rien. C'est ce qui protège le quota (10 000 requêtes pour la vie du
-     compte gratuit). Le délai d'une minute évite juste de redemander une
-     requête si tu fais des allers-retours rapides entre deux fenêtres : ton
-     cas (revenir 2 minutes plus tard) est couvert, sans payer pour rien. */
-  var DELAI_REVERIF = 60000;
+     La fréquence de revérification se règle dans les Options : « à chaque
+     retour » (5 s), 1 minute ou 5 minutes. Chaque vérification coûte une
+     requête jsonbin, d'où le réglage. */
+  var DELAIS_REVERIF = { tout: 5000, minute: 60000, cinq: 300000 };
+
+  function delaiReverif(){
+    return DELAIS_REVERIF[options.reverif] || DELAIS_REVERIF.tout;
+  }
 
   function reverifier(){
     if (!synchroPrete()) return;
-    if (Date.now() - dernierContact < DELAI_REVERIF) return;
+    if (Date.now() - dernierContact < delaiReverif()) return;
     synchroniser();
   }
 
@@ -2409,6 +2644,134 @@
   ------------------------------------------------------------------ */
 
   /* ------------------------------------------------------------------
+     RÉGLAGE DES PROJETS (nom, couleur, ajout, suppression)
+     Le tableau affiche les projets mais ne les modifie plus : le nom est
+     verrouillé, et tout se règle ici — y compris la couleur, qui est une
+     donnée du projet (elle voyage donc avec la synchro).
+  ------------------------------------------------------------------ */
+  var hostProjets = document.getElementById("projets-liste");
+
+  function renderProjets(){
+    if (!hostProjets) return;
+    hostProjets.innerHTML = "";
+    state.projects.forEach(function(p, i){
+      var ligne = document.createElement("div");
+      ligne.className = "projet";
+      ligne.dataset.i = i;
+
+      var pastille = document.createElement("input");
+      pastille.type = "color";
+      pastille.className = "pastille";
+      pastille.value = couleurProjet(i);
+      pastille.title = "Couleur du projet";
+      pastille.setAttribute("aria-label", "Couleur de " + p.name);
+
+      var champ = document.createElement("input");
+      champ.type = "text";
+      champ.className = "nom";
+      champ.value = p.name;
+      champ.maxLength = 40;
+      champ.spellcheck = false;
+      champ.placeholder = "Nom du projet";
+      champ.setAttribute("aria-label", "Nom du projet " + (i + 1));
+
+      var sup = document.createElement("button");
+      sup.type = "button";
+      sup.className = "sup";
+      sup.textContent = "\u00d7";
+      sup.disabled = state.projects.length <= 1;
+      sup.title = sup.disabled ? "On ne peut pas supprimer le dernier projet"
+                               : "Supprimer ce projet (et ses tâches)";
+      sup.setAttribute("aria-label", sup.title);
+
+      ligne.appendChild(pastille);
+      ligne.appendChild(champ);
+      ligne.appendChild(sup);
+      hostProjets.appendChild(ligne);
+    });
+  }
+
+  function projetDeLElement(el){
+    var ligne = (el && el.closest) ? el.closest(".projet") : null;
+    if (!ligne) return -1;
+    var i = Number(ligne.dataset.i);
+    return (i >= 0 && i < state.projects.length) ? i : -1;
+  }
+
+  function rafraichirProjets(){
+    save();
+    renderBoard();
+    renderChips();
+    renderPastilles();
+    updateStats();
+  }
+
+  function majNomProjet(champ){
+    var i = projetDeLElement(champ);
+    if (i < 0) return;
+    var nom = String(champ.value || "").replace(/\s+/g, " ").trim();
+    if (!nom) { champ.value = state.projects[i].name; return; }   /* vide : on remet l'ancien */
+    if (nom === state.projects[i].name) return;
+    state.projects[i].name = nom;
+    rafraichirProjets();
+  }
+
+  function majCouleurProjet(pastille){
+    var i = projetDeLElement(pastille);
+    if (i < 0) return;
+    var c = couleurValide(pastille.value);
+    if (!c || c === state.projects[i].couleur) return;
+    state.projects[i].couleur = c;
+    rafraichirProjets();
+  }
+
+  function ajouterProjet(){
+    if (state.projects.length >= NB_PROJETS_MAX) {
+      showToast("Maximum " + NB_PROJETS_MAX + " projets", false, 3000);
+      return;
+    }
+    var n = state.projects.length;
+    state.projects.push({
+      name: DEFAULT_NAMES[n] || ("Projet " + (n + 1)),
+      couleur: PALETTE[n % PALETTE.length],
+      tasks: [], fini: false
+    });
+    rafraichirProjets();
+    renderProjets();
+    showToast("Projet ajouté", false, 2400);
+  }
+
+  function supprimerProjet(i){
+    var p = state.projects[i];
+    if (!p || state.projects.length <= 1) return;
+    var n = p.tasks.length;
+    var question = "Supprimer le projet \u00ab " + p.name + " \u00bb" +
+                   (n ? " et ses " + n + " t\u00e2che" + (n > 1 ? "s" : "") : "") + " ?";
+    if (!confirm(question)) return;
+    state.projects.splice(i, 1);
+    rafraichirProjets();
+    renderProjets();
+    showToast("Projet supprimé", false, 2600);
+  }
+
+  if (hostProjets) {
+    hostProjets.addEventListener("input", function(ev){
+      if (ev.target && ev.target.classList && ev.target.classList.contains("nom")) majNomProjet(ev.target);
+    });
+    hostProjets.addEventListener("change", function(ev){
+      if (!ev.target || !ev.target.classList) return;
+      if (ev.target.classList.contains("pastille")) majCouleurProjet(ev.target);
+      else if (ev.target.classList.contains("nom")) majNomProjet(ev.target);
+    });
+    hostProjets.addEventListener("click", function(ev){
+      var b = (ev.target && ev.target.closest) ? ev.target.closest(".sup") : null;
+      if (b) supprimerProjet(projetDeLElement(b));
+    });
+  }
+  var boutonAjouterProjet = document.getElementById("projet-ajouter");
+  if (boutonAjouterProjet) boutonAjouterProjet.addEventListener("click", ajouterProjet);
+
+  /* ------------------------------------------------------------------
      PAGE OPTIONS (une vraie page, pas une fenêtre)
   ------------------------------------------------------------------ */
   var pageOptions = document.getElementById("page-options");
@@ -2428,10 +2791,14 @@
     Array.prototype.forEach.call(pageOptions.querySelectorAll(".op-teinte"), function(b){
       b.classList.toggle("on", b.dataset.teinte === options.teinte);
     });
+    Array.prototype.forEach.call(pageOptions.querySelectorAll(".op-reverif"), function(b){
+      b.classList.toggle("on", b.dataset.reverif === options.reverif);
+    });
   }
 
   function ouvrirOptions(){
     majBoutonsOptions();
+    renderProjets();                     /* la liste des projets est refaite à l'ouverture */
     montrerEtat();                       /* l'état de la synchro est rafraîchi à l'ouverture */
     trZone.value = "";                   /* on repart d'une case vide pour le transfert à la main */
     vueTaches.forEach(function(el){ if (el) el.hidden = true; });
@@ -2480,6 +2847,15 @@
       garderOptions();
       appliquerOptions();
       majBoutonsOptions();
+      return;
+    }
+    var reverif = ev.target.closest(".op-reverif");
+    if (reverif) {
+      options.reverif = reverif.dataset.reverif;
+      garderOptions();
+      majBoutonsOptions();
+      dernierContact = 0;                 /* le nouveau réglage s'applique tout de suite */
+      synchroniser();
     }
   });
 

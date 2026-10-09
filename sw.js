@@ -1,6 +1,6 @@
-/* Service worker : met l'application en cache pour qu'elle s'ouvre sans réseau.
-   Change le numéro de version ci-dessous quand tu modifies index.html. */
-var CACHE = "taches-4-projets-v14";
+/* Service worker : met l'application en cache pour qu'elle s'ouvre sans rÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©seau.
+   Change le numÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©ro de version ci-dessous quand tu modifies index.html. */
+var CACHE = "taches-4-projets-v19";
 
 var FICHIERS = [
   "./",
@@ -15,9 +15,9 @@ var FICHIERS = [
 self.addEventListener("install", function(e){
   e.waitUntil(
     caches.open(CACHE).then(function(c){
-      /* On relit chaque fichier en forçant le réseau (cache: "reload").
-         Sans ça, le cache du navigateur pourrait resservir l'ancienne page
-         et la mise à jour n'aurait aucun effet. */
+      /* On relit chaque fichier en forÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ant le rÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©seau (cache: "reload").
+         Sans ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§a, le cache du navigateur pourrait resservir l'ancienne page
+         et la mise ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â  jour n'aurait aucun effet. */
       return Promise.all(FICHIERS.map(function(u){
         return fetch(new Request(u, { cache: "reload" })).then(function(rep){
           if (rep && (rep.ok || rep.type === "opaque")) return c.put(u, rep);
@@ -36,7 +36,7 @@ self.addEventListener("activate", function(e){
   );
 });
 
-/* on sert le cache d'abord (instantané, hors ligne), et on met à jour en arrière-plan */
+/* on sert le cache d'abord (instantanÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©, hors ligne), et on met ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â  jour en arriÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¨re-plan */
 self.addEventListener("fetch", function(e){
   var req = e.request;
   if (req.method !== "GET") return;
