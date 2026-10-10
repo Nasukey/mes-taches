@@ -2583,12 +2583,25 @@
   }
 
   document.getElementById("sy-activer").addEventListener("click", function(){
+    var avant = (syncReg.bin || "") + "|" + (syncReg.cle || "");
     syncReg.bin = (syId.value || "").trim();
     syncReg.cle = (syCle.value || "").trim();
     syncReg.actif = !!(syncReg.bin && syncReg.cle);
+    var apres = (syncReg.bin || "") + "|" + (syncReg.cle || "");
+    if (avant !== apres) {
+      /* Nouveaux réglages (nouveau serveur, nouvelle clé) : le « dernier envoi »
+         ne veut plus rien dire. Sans ça, l'app pouvait croire qu'elle était
+         déjà à jour et n'envoyer AUCUNE tâche vers le nouveau serveur ; ici on
+         repart de zéro pour que le premier envoi se fasse tout de suite.
+         Le compteur repart aussi : c'est un autre serveur. */
+      syncReg.envoi = 0;
+      syncReg.compte = null;
+      dernierEnvoiReel = 0;
+    }
     garderReglages();
     if (!syncReg.actif) { direEtat("Renseigne l'adresse et la clé", "ko"); return; }
     montrerNoteReverif();
+    montrerCompte();
     surveiller();
     synchroniser();
   });
