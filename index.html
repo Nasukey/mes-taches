@@ -2261,6 +2261,11 @@
     if (input.scrollIntoView) { try { input.scrollIntoView({ block: "nearest" }); } catch (e) {} }
 
     var closed = false;
+    /* Quand on ajoute une tâche, la liste est redessinée : le champ est détaché
+       puis reposé. Le navigateur envoie un « blur » à ce moment-là, et sans ce
+       témoin la tâche était ajoutée UNE DEUXIÈME FOIS (et le champ se
+       refermait). On ignore donc le blur pendant le redessin. */
+    var pendantRedessin = false;
     function close(){
       if (closed) return;
       closed = true;
@@ -2280,16 +2285,19 @@
       if (!n) return 0;
       state.projects[i].fini = false;                  /* nouvelles tâches : le projet repart */
       save();
+      pendantRedessin = true;
       renderList(i);
+      pendantRedessin = false;
       updateStats();
       return n;
     }
 
     function commit(){
-      var n = ajouter(input.value);
-      if (!n) return;                                  /* rien à ajouter : on reste prêt */
-      input.value = "";                                /* on reste ouvert pour la suivante */
-      input.focus();
+      var texte = input.value;
+      if (!String(texte).trim()) return;               /* rien à ajouter : on reste prêt */
+      input.value = "";                                /* vidé AVANT l'ajout : un blur tardif ne peut plus rien ajouter */
+      ajouter(texte);
+      if (!closed) input.focus();                      /* on reste ouvert pour la suivante */
     }
 
     /* Entrée (ou la touche « suivant » du clavier du téléphone, qui envoie
@@ -2325,7 +2333,9 @@
        perte de focus. On enregistre donc aussi à ce moment-là. Avant, ce que
        tu venais de taper disparaissait — d'où l'impression que rien ne marchait. */
     input.addEventListener("blur", function(){
-      if (closed) return;                              /* champ déjà refermé : rien à faire */
+      /* « pendantRedessin » : le champ vient d'être détaché pour être reposé,
+         ce n'est pas un vrai départ — on ne fait rien (sinon double ajout). */
+      if (closed || pendantRedessin) return;
       var texte = input.value.replace(/\s+/g, " ").trim();
       if (texte) {
         var n = ajouter(texte);
