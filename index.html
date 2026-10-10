@@ -569,6 +569,44 @@
   }
   .projet .sup:hover{color:var(--danger);background:var(--danger-soft)}
   .projet .sup[disabled]{opacity:.25;pointer-events:none}
+
+  /* flèches pour changer l'ordre des projets */
+  .projet .ordre{display:grid;gap:1px;flex:0 0 auto}
+  .projet .ordre button{
+    appearance:none;border:0;background:none;cursor:pointer;padding:0;
+    color:var(--muted);width:calc(26px*var(--ech));height:calc(17px*var(--ech));
+    border-radius:7px;display:grid;place-items:center;
+    transition:color .2s ease,background .2s ease,opacity .2s ease;
+  }
+  .projet .ordre button svg{width:calc(11px*var(--ech));height:calc(11px*var(--ech));fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+  .projet .ordre button:hover{color:var(--accent);background:var(--accent-soft)}
+  .projet .ordre button[disabled]{opacity:.16;pointer-events:none}
+
+  /* demande de confirmation (suppression d'un projet) */
+  .confirm{
+    position:fixed;inset:0;z-index:95;display:grid;place-items:center;padding:18px;
+    background:var(--veil);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+    animation:fade .2s ease both;
+  }
+  .confirm[hidden]{display:none}
+  .confirm-boite{
+    width:min(420px,100%);text-align:center;
+    background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow-hi);padding:20px 18px calc(16px + env(safe-area-inset-bottom, 0px));
+    animation:celIn .4s var(--bounce) both;
+  }
+  .confirm-titre{margin:0 0 8px;font-size:calc(14.5px*var(--ech));font-weight:700;letter-spacing:-.02em}
+  .confirm-texte{margin:0 0 18px;font-size:calc(11.5px*var(--ech));line-height:1.6;color:var(--muted)}
+  .confirm-actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+  .confirm-actions button{
+    appearance:none;cursor:pointer;font:inherit;font-size:calc(11.5px*var(--ech));font-weight:600;
+    color:var(--ink-2);background:var(--surface);border:1px solid var(--line);
+    padding:calc(9px*var(--ech)) 16px;border-radius:11px;
+    transition:border-color .2s ease,color .2s ease,background .2s ease,opacity .2s ease;
+  }
+  .confirm-actions button:hover{border-color:var(--accent);color:var(--accent)}
+  .confirm-actions button.danger{background:var(--danger);border-color:var(--danger);color:#fff}
+  .confirm-actions button.danger:hover{opacity:.88;color:#fff}
   @media (hover: none){
     .projet input[type="text"]{font-size:16px}
   }
@@ -793,6 +831,17 @@
   <button id="undo" type="button">Annuler</button>
 </div>
 
+<div class="confirm" id="confirm" hidden role="dialog" aria-modal="true" aria-labelledby="confirm-titre">
+  <div class="confirm-boite">
+    <p class="confirm-titre" id="confirm-titre">Supprimer ?</p>
+    <p class="confirm-texte" id="confirm-texte"></p>
+    <div class="confirm-actions">
+      <button id="confirm-annuler" type="button">Annuler</button>
+      <button id="confirm-ok" type="button" class="danger">Supprimer</button>
+    </div>
+  </div>
+</div>
+
 <div class="celebrate" id="celebrate" hidden>
   <div class="cel-card">
     <p class="cel-kicker">Tous les projets</p>
@@ -871,7 +920,7 @@
   function blank(){
     return {
       projects: DEFAULT_NAMES.map(function(n, i){
-        return { name: n, couleur: PALETTE[i], tasks: [], fini: false };
+        return { id: uid(), name: n, couleur: PALETTE[i], tasks: [], fini: false };
       }),
       demain: [], updatedAt: 0
     };
@@ -957,6 +1006,10 @@
                   : (DEFAULT_NAMES[i] || ("Projet " + (i + 1)));
       var tasks = Array.isArray(src.tasks) ? src.tasks : [];
       out.push({
+        /* identifiant stable du projet : il permet de reconnaître un projet
+           même si l'ordre a changé d'un appareil à l'autre (sinon les tâches
+           d'un projet pourraient se retrouver dans un autre) */
+        id: (typeof src.id === "string" && src.id) ? src.id : uid(),
         name: nom,
         couleur: couleurValide(src.couleur) || PALETTE[i % PALETTE.length],
         tasks: tasks.filter(function(t){ return t && typeof t.text === "string" && t.text.trim(); })
@@ -2219,19 +2272,23 @@
   function importerDonnees(texte){
     var data;
     try { data = JSON.parse(String(texte)); }
-    catch (e) { alert("Données illisibles : ce texte n'est pas valide."); return; }
-    if (!data || !Array.isArray(data.projects)) { alert("Ces données ne contiennent pas de tâches."); return; }
+    catch (e) { showToast("Données illisibles : ce texte n'est pas valide", true, 3600); return; }
+    if (!data || !Array.isArray(data.projects)) { showToast("Ces données ne contiennent pas de tâches", true, 3600); return; }
 
     var total = 0;
     data.projects.forEach(function(p){ if (p && Array.isArray(p.tasks)) total += p.tasks.length; });
-    var question = total
-      ? "Remplacer les tâches de cet appareil par " + total + " tâche" + (total > 1 ? "s" : "") + " ?"
-      : "Ces données ne contiennent aucune tâche. Continuer quand même ?";
-    if (!confirm(question)) return;
-
-    try { localStorage.setItem(KEY, JSON.stringify({ projects: data.projects, demain: data.demain || [] })); }
-    catch (e) { alert("Impossible d'enregistrer sur cet appareil."); return; }
-    location.reload();
+    demanderConfirmation(
+      "Importer ces données ?",
+      total
+        ? "Les tâches de cet appareil seront remplacées par ces " + total + " t\u00e2che" +
+          (total > 1 ? "s" : "") + " (projets et noms compris). C'est d\u00e9finitif."
+        : "Ces données ne contiennent aucune t\u00e2che. Continuer quand m\u00eame ?",
+      "Importer",
+      function(){
+        try { localStorage.setItem(KEY, JSON.stringify({ projects: data.projects, demain: data.demain || [] })); }
+        catch (e) { showToast("Impossible d'enregistrer sur cet appareil", true, 3600); return; }
+        location.reload();
+      });
   }
 
   /* Le bouton du bas synchronise directement, sans ouvrir de page.
@@ -2448,7 +2505,12 @@
 
   /* Fusion : on prend la version de l'autre appareil comme base, et on y
      rajoute les tâches créées ici qui ne sont pas encore envoyées. Pour une
-     tâche présente des deux côtés, c'est le geste le plus récent qui gagne. */
+     tâche présente des deux côtés, c'est le geste le plus récent qui gagne.
+
+     Les projets sont appariés par leur IDENTIFIANT, jamais par leur position :
+     l'ordre des projets peut être différent d'un appareil à l'autre, et sans
+     ça les tâches d'un projet iraient se ranger dans un autre. Un projet créé
+     ici et pas encore envoyé est ajouté à la suite (il ne disparaît pas). */
   function fusionner(distant){
     var d = {
       projects: normaliserProjets(distant.projects),
@@ -2456,16 +2518,35 @@
       updatedAt: Date.now()
     };
 
+    var parId = {}, parPos = {};
+    d.projects.forEach(function(p, i){
+      if (p.id) parId[p.id] = p;
+      parPos[i] = p;
+    });
+
     state.projects.forEach(function(p, i){
-      var cible = d.projects[i].tasks;
-      var parId = {};
-      cible.forEach(function(t){ parId[t.id] = t; });
+      var cible = (p.id && parId[p.id]) ? parId[p.id] : parPos[i];
+
+      /* projet créé ici, que l'autre appareil ne connaît pas encore */
+      if (!cible) {
+        d.projects.push({
+          id: p.id, name: p.name, couleur: p.couleur, fini: !!p.fini,
+          tasks: p.tasks.map(function(t){
+            return { id: t.id, text: t.text, done: !!t.done, doneAt: t.doneAt || 0, niv: Number(t.niv) || 0 };
+          })
+        });
+        return;
+      }
+
+      var cible2 = cible.tasks;
+      var parTache = {};
+      cible2.forEach(function(t){ parTache[t.id] = t; });
 
       p.tasks.forEach(function(t){
-        var jumeau = parId[t.id];
+        var jumeau = parTache[t.id];
         if (!jumeau) {                                  /* créée ici, jamais envoyée */
-          cible.push({ id: t.id, text: t.text, done: !!t.done, doneAt: t.doneAt || 0,
-                       niv: Number(t.niv) || 0 });
+          cible2.push({ id: t.id, text: t.text, done: !!t.done, doneAt: t.doneAt || 0,
+                        niv: Number(t.niv) || 0 });
           return;
         }
         if (!!t.done !== !!jumeau.done && (Number(t.doneAt) || 0) > (Number(jumeau.doneAt) || 0)) {
@@ -2473,7 +2554,7 @@
           jumeau.doneAt = t.doneAt || 0;
         }
       });
-      nettoyerListe(cible);
+      nettoyerListe(cible2);
     });
 
     state.demain.forEach(function(x){
@@ -2618,9 +2699,14 @@
   if (syRestaurer) syRestaurer.addEventListener("click", function(){
     var avant = localStorage.getItem(CLE_SECOURS);
     if (!avant) return;
-    if (!confirm("Remettre les tâches telles qu'elles étaient avant la dernière synchro ?")) return;
-    try { localStorage.setItem(KEY, avant); } catch (e) {}
-    location.reload();
+    demanderConfirmation(
+      "Restaurer la version d'avant ?",
+      "Tes t\u00e2ches seront remises telles qu'elles \u00e9taient avant la derni\u00e8re synchro. C'est l'inverse du dernier \u00e9change avec l'autre appareil.",
+      "Restaurer",
+      function(){
+        try { localStorage.setItem(KEY, avant); } catch (e) {}
+        location.reload();
+      });
   });
 
   /* La synchro se fait toute seule, sans jamais appuyer sur un bouton :
@@ -2712,6 +2798,43 @@
   ------------------------------------------------------------------ */
   var hostProjets = document.getElementById("projets-liste");
 
+  /* ------------------------------------------------------------------
+     DEMANDE DE CONFIRMATION
+     Une vraie boîte dans l'application (pas celle du navigateur, qui peut
+     être bloquée ou passer inaperçue). Rien de destructif sans un « oui ».
+  ------------------------------------------------------------------ */
+  var confirmEl = document.getElementById("confirm");
+  var confirmTitre = document.getElementById("confirm-titre");
+  var confirmTexte = document.getElementById("confirm-texte");
+  var confirmOk = document.getElementById("confirm-ok");
+  var confirmAction = null;
+
+  function demanderConfirmation(titre, texte, libelle, action){
+    if (!confirmEl) { if (window.confirm(texte)) action(); return; }
+    confirmTitre.textContent = titre;
+    confirmTexte.textContent = texte;
+    confirmOk.textContent = libelle;
+    confirmAction = action;
+    confirmEl.hidden = false;
+    confirmOk.focus();
+  }
+  function fermerConfirmation(){
+    if (confirmEl && !confirmEl.hidden) confirmEl.hidden = true;
+    confirmAction = null;
+  }
+  if (confirmEl) {
+    confirmOk.addEventListener("click", function(){
+      var action = confirmAction;
+      fermerConfirmation();
+      if (action) action();
+    });
+    document.getElementById("confirm-annuler").addEventListener("click", fermerConfirmation);
+    confirmEl.addEventListener("click", function(ev){ if (ev.target === confirmEl) fermerConfirmation(); });
+    document.addEventListener("keydown", function(ev){
+      if (ev.key === "Escape" && !confirmEl.hidden) fermerConfirmation();
+    });
+  }
+
   function renderProjets(){
     if (!hostProjets) return;
     hostProjets.innerHTML = "";
@@ -2745,11 +2868,42 @@
                                : "Supprimer ce projet (et ses tâches)";
       sup.setAttribute("aria-label", sup.title);
 
+      /* flèches pour déplacer le projet dans l'ordre */
+      var ordre = document.createElement("div");
+      ordre.className = "ordre";
+      var haut = document.createElement("button");
+      haut.type = "button";
+      haut.className = "monte";
+      haut.disabled = i === 0;
+      haut.title = "Monter ce projet";
+      haut.setAttribute("aria-label", "Monter le projet " + p.name);
+      haut.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg>';
+      var bas = document.createElement("button");
+      bas.type = "button";
+      bas.className = "descend";
+      bas.disabled = i === state.projects.length - 1;
+      bas.title = "Descendre ce projet";
+      bas.setAttribute("aria-label", "Descendre le projet " + p.name);
+      bas.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+      ordre.appendChild(haut);
+      ordre.appendChild(bas);
+
       ligne.appendChild(pastille);
       ligne.appendChild(champ);
+      ligne.appendChild(ordre);
       ligne.appendChild(sup);
       hostProjets.appendChild(ligne);
     });
+  }
+
+  /* déplace un projet d'un cran (le nouvel ordre est enregistré et synchronisé) */
+  function deplacerProjet(i, vers){
+    var j = i + vers;
+    if (i < 0 || j < 0 || j >= state.projects.length) return;
+    var p = state.projects.splice(i, 1)[0];
+    state.projects.splice(j, 0, p);
+    rafraichirProjets();
+    renderProjets();
   }
 
   function projetDeLElement(el){
@@ -2806,13 +2960,18 @@
     var p = state.projects[i];
     if (!p || state.projects.length <= 1) return;
     var n = p.tasks.length;
-    var question = "Supprimer le projet \u00ab " + p.name + " \u00bb" +
-                   (n ? " et ses " + n + " t\u00e2che" + (n > 1 ? "s" : "") : "") + " ?";
-    if (!confirm(question)) return;
-    state.projects.splice(i, 1);
-    rafraichirProjets();
-    renderProjets();
-    showToast("Projet supprimé", false, 2600);
+    demanderConfirmation(
+      "Supprimer « " + p.name + " » ?",
+      n ? "Ce projet contient " + n + " t\u00e2che" + (n > 1 ? "s" : "") +
+          ". Elles seront supprim\u00e9es en m\u00eame temps, d\u00e9finitivement."
+        : "Ce projet est vide. Il sera retir\u00e9 du tableau, d\u00e9finitivement.",
+      "Supprimer",
+      function(){
+        state.projects.splice(i, 1);
+        rafraichirProjets();
+        renderProjets();
+        showToast("Projet supprim\u00e9", false, 2600);
+      });
   }
 
   if (hostProjets) {
@@ -2825,8 +2984,13 @@
       else if (ev.target.classList.contains("nom")) majNomProjet(ev.target);
     });
     hostProjets.addEventListener("click", function(ev){
-      var b = (ev.target && ev.target.closest) ? ev.target.closest(".sup") : null;
-      if (b) supprimerProjet(projetDeLElement(b));
+      if (!ev.target || !ev.target.closest) return;
+      var sup = ev.target.closest(".sup");
+      if (sup) { supprimerProjet(projetDeLElement(sup)); return; }
+      var monte = ev.target.closest(".monte");
+      if (monte) { deplacerProjet(projetDeLElement(monte), -1); return; }
+      var descend = ev.target.closest(".descend");
+      if (descend) { deplacerProjet(projetDeLElement(descend), 1); }
     });
   }
   var boutonAjouterProjet = document.getElementById("projet-ajouter");
