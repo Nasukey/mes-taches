@@ -1,6 +1,6 @@
-/* Service worker : met l'application en cache pour qu'elle s'ouvre sans rÃƒÂ©seau.
-   Change le numÃƒÂ©ro de version ci-dessous quand tu modifies index.html. */
-var CACHE = "taches-4-projets-v24";
+/* Service worker : met l'application en cache pour qu'elle s'ouvre sans rÃƒÆ’Ã‚Â©seau.
+   Change le numÃƒÆ’Ã‚Â©ro de version ci-dessous quand tu modifies index.html. */
+var CACHE = "taches-4-projets-v25";
 
 var FICHIERS = [
   "./",
@@ -15,9 +15,9 @@ var FICHIERS = [
 self.addEventListener("install", function(e){
   e.waitUntil(
     caches.open(CACHE).then(function(c){
-      /* On relit chaque fichier en forÃƒÂ§ant le rÃƒÂ©seau (cache: "reload").
-         Sans ÃƒÂ§a, le cache du navigateur pourrait resservir l'ancienne page
-         et la mise ÃƒÂ  jour n'aurait aucun effet. */
+      /* On relit chaque fichier en forÃƒÆ’Ã‚Â§ant le rÃƒÆ’Ã‚Â©seau (cache: "reload").
+         Sans ÃƒÆ’Ã‚Â§a, le cache du navigateur pourrait resservir l'ancienne page
+         et la mise ÃƒÆ’Ã‚Â  jour n'aurait aucun effet. */
       return Promise.all(FICHIERS.map(function(u){
         return fetch(new Request(u, { cache: "reload" })).then(function(rep){
           if (rep && (rep.ok || rep.type === "opaque")) return c.put(u, rep);
@@ -36,14 +36,14 @@ self.addEventListener("activate", function(e){
   );
 });
 
-/* On sert le cache d'abord (instantanÃƒÂ©, hors ligne), et on met ÃƒÂ  jour en
-   arriÃƒÂ¨re-plan.
+/* On sert le cache d'abord (instantanÃƒÆ’Ã‚Â©, hors ligne), et on met ÃƒÆ’Ã‚Â  jour en
+   arriÃƒÆ’Ã‚Â¨re-plan.
 
-   IMPORTANT : uniquement pour les fichiers de l'application elle-mÃƒÂªme. Les
-   appels de synchronisation (jsonbin, CloudflareÃ¢â‚¬Â¦) doivent TOUJOURS partir
-   sur le rÃƒÂ©seau. Avant, ils ÃƒÂ©taient mis en cache eux aussi : l'application
-   pouvait alors relire un vieil ÃƒÂ©tat, se croire ÃƒÂ  jour et ne rien recevoir
-   de l'autre appareil. C'ÃƒÂ©tait la cause des Ã‚Â« parfois ce n'est pas synchro Ã‚Â». */
+   IMPORTANT : uniquement pour les fichiers de l'application elle-mÃƒÆ’Ã‚Âªme. Les
+   appels de synchronisation (jsonbin, CloudflareÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦) doivent TOUJOURS partir
+   sur le rÃƒÆ’Ã‚Â©seau. Avant, ils ÃƒÆ’Ã‚Â©taient mis en cache eux aussi : l'application
+   pouvait alors relire un vieil ÃƒÆ’Ã‚Â©tat, se croire ÃƒÆ’Ã‚Â  jour et ne rien recevoir
+   de l'autre appareil. C'ÃƒÆ’Ã‚Â©tait la cause des Ãƒâ€šÃ‚Â« parfois ce n'est pas synchro Ãƒâ€šÃ‚Â». */
 self.addEventListener("fetch", function(e){
   var req = e.request;
   if (req.method !== "GET") return;
@@ -53,7 +53,7 @@ self.addEventListener("fetch", function(e){
 
   /* tout ce qui n'est pas sur notre propre adresse : on laisse filer */
   if (url.origin !== self.location.origin) return;
-  /* et on ne touche pas non plus aux adresses de synchro, mÃƒÂªme par prudence */
+  /* et on ne touche pas non plus aux adresses de synchro, mÃƒÆ’Ã‚Âªme par prudence */
   if (/jsonbin\.io|workers\.dev|api\./i.test(url.hostname)) return;
 
   e.respondWith(

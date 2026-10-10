@@ -302,14 +302,21 @@
     text-align:center;color:var(--muted);font-size:calc(11.5px*var(--ech));padding:16px 4px;list-style:none;
     border:1px dashed var(--line);border-radius:12px;
   }
-  .quick{
-    appearance:none;border:0;background:none;cursor:pointer;font:inherit;
-    font-size:calc(11.5px*var(--ech));font-weight:600;color:var(--muted);
-    text-align:center;padding:calc(8px*var(--ech)) calc(6px*var(--ech));margin-top:8px;border-radius:12px;
-    transition:color .22s ease,background .22s ease,transform .18s var(--ease);
+  /* La fin de la liste : on écrit directement sous la dernière tâche, et
+     toute la zone vide en dessous est cliquable elle aussi. */
+  .list::after{
+    content:"+ Ajouter une tâche";
+    display:block;text-align:center;color:var(--muted);opacity:.4;
+    font-size:calc(11.5px*var(--ech));font-weight:600;
+    padding:calc(10px*var(--ech)) 4px;margin-top:8px;
+    border:1px dashed var(--line);border-radius:12px;
+    transition:opacity .22s ease,color .22s ease,background .22s ease,border-color .22s ease;
   }
-  .quick:hover{color:var(--accent);background:var(--accent-soft)}
-  .quick:active{transform:scale(.98)}
+  .col:hover .list::after{opacity:.8}
+  .list:hover::after{border-color:var(--accent);color:var(--accent);background:var(--accent-soft);opacity:1}
+  /* le champ d'ajout est ouvert : on cache l'invitation, elle ferait doublon */
+  .col.saisie .list::after{display:none}
+  .quick-li{list-style:none;margin:0;padding:0}
   .quick-in{
     appearance:none;border:0;border-bottom:1.5px solid var(--accent);background:none;color:var(--ink);
     font:inherit;font-size:calc(12.5px*var(--ech));padding:calc(8px*var(--ech)) 4px;margin-top:8px;width:100%;outline:none;text-align:center;
@@ -1259,18 +1266,27 @@
     return Math.min(2, (Number(liste[k - 1].niv) || 0) + 1);
   }
 
+  /* Redessine la liste d'un projet. Le champ d'ajout ouvert, lui, est reposé
+     à la fin : sans ça il disparaîtrait dès qu'on ajoute une tâche (et on ne
+     pourrait plus enchaîner). */
   function renderList(i){
     var col = colOf(i);
     if (!col) return;
     var ul = col.querySelector(".list");
     var tasks = state.projects[i].tasks;
+
+    var champOuvert = ul.querySelector(".quick-in");
+    var blocChamp = (champOuvert && champOuvert.parentNode) ? champOuvert.parentNode : null;
+    var valeurChamp = champOuvert ? champOuvert.value : "";
+
     ul.innerHTML = "";
 
     if (!tasks.length) {
       var ph = document.createElement("li");
       ph.className = "empty";
-      ph.textContent = "Rien ici pour l'instant";
+      ph.textContent = "Rien ici pour l'instant \u2014 clique ici pour \u00e9crire";
       ul.appendChild(ph);
+      remettreChamp(ul, blocChamp, champOuvert, valeurChamp);
       return;
     }
 
@@ -1332,6 +1348,17 @@
       li.appendChild(drag);
       ul.appendChild(li);
     });
+
+    remettreChamp(ul, blocChamp, champOuvert, valeurChamp);
+  }
+
+  /* repose le champ d'ajout ouvert à la fin de la liste, et remet le curseur */
+  function remettreChamp(ul, bloc, champ, valeur){
+    if (!champ) return;
+    ul.appendChild(bloc || champ);
+    champ.value = valeur;
+    champ.focus();
+    try { champ.setSelectionRange(valeur.length, valeur.length); } catch (e) {}
   }
 
   function makeColumn(i){
@@ -1379,16 +1406,10 @@
     var ul = document.createElement("ul");
     ul.className = "list";
 
-    var quick = document.createElement("button");
-    quick.type = "button";
-    quick.className = "quick";
-    quick.textContent = "+ Ajouter une tâche";
-
     col.appendChild(head);
     col.appendChild(stat);
     col.appendChild(bar);
     col.appendChild(ul);
-    col.appendChild(quick);
     return col;
   }
 
@@ -1903,6 +1924,15 @@
       return;
     }
 
+    /* un clic dans le VIDE de la liste (sous la dernière tâche, ou dans une
+       colonne encore vide) : on ouvre l'écriture juste là. Plus besoin de
+       descendre jusqu'au bas de la colonne. */
+    var vide = ev.target.closest(".list");
+    if (vide && ev.target === vide) {
+      openQuick(col, i);
+      return;
+    }
+
     var quick = ev.target.closest(".quick");
     if (quick) openQuick(col, i);
   });
@@ -2116,20 +2146,40 @@
   });
 
   function openQuick(col, i){
-    var quick = col.querySelector(".quick");
-    if (!quick) return;
+    if (!col) return;
+    var ul = col.querySelector(".list");
+    if (!ul) return;
+
+    /* déjà ouvert : on y retourne simplement */
+    var deja = ul.querySelector(".quick-in");
+    if (deja) {
+      deja.focus();
+      if (deja.scrollIntoView) { try { deja.scrollIntoView({ block: "nearest" }); } catch (e) {} }
+      return;
+    }
+
+    /* le champ se pose À LA FIN DE LA LISTE, donc juste sous la dernière
+       tâche : on écrit là où on regarde, sans descendre au bas de la colonne. */
+    var li = document.createElement("li");
+    li.className = "quick-li";
     var input = document.createElement("input");
     input.type = "text";
     input.className = "quick-in";
     input.placeholder = "Nouvelle tâche\u2026";
-    quick.replaceWith(input);
+    input.autocomplete = "off";
+    input.spellcheck = false;
+    li.appendChild(input);
+    ul.appendChild(li);
+    col.classList.add("saisie");
     input.focus();
+    if (input.scrollIntoView) { try { input.scrollIntoView({ block: "nearest" }); } catch (e) {} }
 
     var closed = false;
     function close(){
       if (closed) return;
       closed = true;
-      input.replaceWith(quick);
+      col.classList.remove("saisie");
+      if (li.parentNode) li.parentNode.removeChild(li);
     }
 
     /* ajoute une ou plusieurs lignes d'un coup (une ligne = une tâche) */
