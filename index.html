@@ -253,17 +253,16 @@
   .txt.edition:empty::before{
     content:"Nouvelle tâche\2026";color:var(--muted);pointer-events:none;
   }
-  /* bouton copier, et bouton ajouter en dessous, sur chaque ligne */
-  .cop,.plus{
+  /* bouton copier, une ligne à la fois */
+  .cop{
     appearance:none;border:0;background:none;color:var(--muted);cursor:pointer;
     width:calc(20px*var(--ech));height:calc(24px*var(--ech));padding:0;border-radius:7px;
     flex:0 0 auto;margin-top:5px;display:grid;place-items:center;opacity:.28;
     transition:opacity .2s ease,color .2s ease,background .2s ease;
   }
-  .cop svg,.plus svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
-  .plus svg{stroke-width:2.3}
-  .task:hover .cop,.task:hover .plus{opacity:1}
-  .cop:hover,.plus:hover{color:var(--accent);background:var(--accent-soft)}
+  .cop svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+  .task:hover .cop{opacity:1}
+  .cop:hover{color:var(--accent);background:var(--accent-soft)}
   .cop.copie{animation:copie .55s ease-out}
   /* la poignée : on glisse la ligne pour la déplacer */
   .drag{
@@ -450,7 +449,7 @@
   /* ---------------- téléphone : pas de survol ---------------- */
   @media (hover: none){
     .drag{opacity:.45}
-    .cop,.plus{opacity:.5}
+    .cop{opacity:.5}
     .txt{cursor:default}
     .col:hover{transform:none;box-shadow:var(--shadow)}
     .modale-actions button:hover{border-color:var(--line);color:var(--ink-2);transform:none}
@@ -733,16 +732,16 @@
     <h2>Synchronisation automatique</h2>
     <p class="modale-note">
       Pour que ton PC et ton téléphone aient <b>toujours les mêmes tâches</b>, sans rien faire.
-      Il faut un espace de stockage privé gratuit (jsonbin.io) : crée un compte, crée un « bin »,
-      puis colle ici son identifiant et ta clé. Ces deux valeurs restent sur cet appareil,
-      elles ne sont jamais dans le fichier du site. À faire une fois par appareil.
+      Colle ici l'<b>adresse de ton serveur Cloudflare</b> et ta <b>clé secrète</b> (voir la note
+      « GUIDE-cloudflare » fournie avec l'application). Ces deux valeurs restent sur cet
+      appareil, elles ne sont jamais dans le fichier du site. À faire une fois par appareil.
     </p>
     <div class="modale-champs">
-      <label for="sy-id">Identifiant du stockage (Bin ID)
-        <input id="sy-id" type="text" spellcheck="false" autocomplete="off" placeholder="ex. 65f2c1a3e4b0…">
+      <label for="sy-id">Adresse du serveur
+        <input id="sy-id" type="text" spellcheck="false" autocomplete="off" placeholder="https://mes-taches.xxx.workers.dev">
       </label>
-      <label for="sy-cle">Clé secrète (Master Key)
-        <input id="sy-cle" type="password" spellcheck="false" autocomplete="off" placeholder="ex. $2a$10$…">
+      <label for="sy-cle">Clé secrète
+        <input id="sy-cle" type="password" spellcheck="false" autocomplete="off" placeholder="la clé que tu as choisie">
       </label>
     </div>
     <div class="modale-actions">
@@ -754,7 +753,7 @@
     <p class="modale-etat" id="sy-compte"></p>
 
     <p class="modale-sous-titre" style="margin-top:18px">Quand vérifier</p>
-    <p class="modale-note" style="margin-bottom:10px">
+    <p class="modale-note" style="margin-bottom:10px" id="note-reverif">
       À chaque fois que tu reviens sur l'application, elle compare avec l'autre appareil.
       Chaque vérification coûte <b>une requête</b> chez jsonbin (10 000 pour la vie du compte
       gratuit) : plus c'est fréquent, plus tes tâches sont à jour, plus ça consomme.
@@ -1274,52 +1273,12 @@
       drag.setAttribute("aria-label", "Déplacer ou rattacher la tâche (glisser)");
       drag.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14M5 12h14M5 16h14"/></svg>';
 
-      /* Un « + » sur chaque ligne : ajoute une tâche juste en dessous, au même
-         niveau. Ça évite de descendre jusqu'au bouton du bas de la colonne
-         quand le projet est bien rempli — et pour une sous-tâche, la nouvelle
-         reste une sous-tâche. */
-      var plus = document.createElement("button");
-      plus.type = "button";
-      plus.className = "plus";
-      plus.dataset.id = t.id;
-      plus.title = "Ajouter une tâche juste en dessous (même niveau)";
-      plus.setAttribute("aria-label", plus.title);
-      plus.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
-
       li.appendChild(toggle);
       li.appendChild(txt);
-      /* pas de « + » sur une tâche terminée : la nouvelle irait dans le groupe
-         du haut, on ne verrait pas où elle est apparue */
-      if (!t.done) li.appendChild(plus);
       if (cop) li.appendChild(cop);
       li.appendChild(drag);
       ul.appendChild(li);
     });
-  }
-
-  /* Insère une tâche vide juste après celle-ci, au même niveau, et ouvre
-     l'édition dessus. Rien n'est enregistré tant qu'on n'a rien écrit :
-     une ligne laissée vide disparaît toute seule. */
-  function ajouterApres(i, id){
-    var liste = state.projects[i].tasks;
-    var k = -1;
-    liste.forEach(function(x, n){ if (x.id === id) k = n; });
-    if (k < 0) return;
-
-    var nv = { id: uid(), text: "", done: false, doneAt: 0, niv: Number(liste[k].niv) || 0 };
-    liste.splice(k + 1, 0, nv);
-    nettoyerNiveaux(i);
-    renderList(i);
-    updateStats();
-
-    var col = colOf(i);
-    var suivant = col ? col.querySelector('.txt[data-id="' + nv.id + '"]') : null;
-    if (suivant) {
-      editer(suivant, i);
-      if (suivant.scrollIntoView) {
-        try { suivant.scrollIntoView({ block: "nearest", behavior: reduceMotion ? "auto" : "smooth" }); } catch (e) {}
-      }
-    }
   }
 
   function makeColumn(i){
@@ -1708,13 +1667,49 @@
       }
     };
 
-    /* collage : on ne garde que le texte, sans mise en forme */
+    /* collage : on ne garde que le texte, sans mise en forme. Et si on colle
+       PLUSIEURS lignes (par exemple tout ce qu'il y a à faire d'un projet),
+       chaque ligne devient une tâche, collées à la suite de celle-ci — au
+       lieu de tout écraser sur une seule ligne. */
     txt.onpaste = function(ev){
-      ev.preventDefault();
       var cb = ev.clipboardData || window.clipboardData;
       var brut = cb ? String(cb.getData("text") || "") : "";
-      var propre = brut.replace(/\s+/g, " ").trim();
-      if (propre) document.execCommand("insertText", false, propre);
+      ev.preventDefault();
+      if (!brut) return;
+
+      var lignes = brut.replace(/\r\n?/g, "\n").split("\n")
+                       .map(function(s){ return s.replace(/\s+/g, " ").trim(); })
+                       .filter(function(s){ return s; });
+      if (!lignes.length) return;
+
+      if (lignes.length === 1) {
+        document.execCommand("insertText", false, lignes[0]);
+        return;
+      }
+
+      var t = tacheParId(i, txt.dataset.id);
+      var liste = state.projects[i].tasks;
+      var k = t ? liste.indexOf(t) : -1;
+      if (k < 0) return;
+
+      var nouvelles = lignes.map(function(s){
+        return { id: uid(), text: s, done: false, doneAt: 0, niv: Number(t.niv) || 0 };
+      });
+      /* c'était une ligne vide : la première ligne collée vient dedans */
+      if (!String(txt.textContent || "").trim()) {
+        t.text = nouvelles.shift().text;
+        txt.textContent = t.text;
+      }
+      liste.splice.apply(liste, [k + 1, 0].concat(nouvelles));
+      nettoyerNiveaux(i);
+      /* on enregistre ici : si on se contente de finirEdition, le texte de
+         cette tâche n'a pas changé (donc aucun enregistrement) et les lignes
+         collées ne seraient pas sauvegardées. */
+      save();
+      finirEdition(txt, i, false);
+      renderList(i);
+      updateStats();
+      showToast(lignes.length + " t\u00e2ches coll\u00e9es", false, 2600);
     };
 
     txt.onblur = function(){ finirEdition(txt, i, false); };
@@ -1835,13 +1830,6 @@
       save();
       updateStats();
       moveTask(i, li, nowDone);
-      return;
-    }
-
-    /* ajouter une tâche juste en dessous */
-    var plus = ev.target.closest(".plus");
-    if (plus) {
-      ajouterApres(i, plus.dataset.id);
       return;
     }
 
@@ -2337,7 +2325,26 @@
   var syncEnCours = false, envoiTimer = null, dernierContact = 0;
 
   function synchroPrete(){ return !!(syncReg.actif && syncReg.bin && syncReg.cle); }
-  function synchroURL(){ return (syncReg.base || "https://api.jsonbin.io/v3/b/") + encodeURIComponent(syncReg.bin); }
+
+  /* Deux services possibles, reconnus à ce qu'on a collé :
+       - une adresse complète (https://…) : notre serveur Cloudflare ;
+       - un simple identifiant : l'ancien stockage jsonbin.
+     Le reste du code utilise ensuite les bons en-têtes et la bonne adresse. */
+  function surCloudflare(){ return /^https?:\/\//i.test(String(syncReg.bin || "")); }
+  function synchroURL(){
+    if (surCloudflare()) return String(syncReg.bin).replace(/\/+$/, "");
+    return (syncReg.base || "https://api.jsonbin.io/v3/b/") + encodeURIComponent(syncReg.bin);
+  }
+  function entetesLecture(){
+    return surCloudflare()
+      ? { "X-Cle": syncReg.cle }
+      : { "X-Master-Key": syncReg.cle, "X-Bin-Meta": "false" };
+  }
+  function entetesEcriture(){
+    return surCloudflare()
+      ? { "Content-Type": "application/json", "X-Cle": syncReg.cle }
+      : { "Content-Type": "application/json", "X-Master-Key": syncReg.cle };
+  }
   function garderReglages(){ try { localStorage.setItem(CLE_REGLAGES, JSON.stringify(syncReg)); } catch (e) {} }
 
   function ilYAMinutes(t){
@@ -2406,13 +2413,14 @@
     var c = syncReg.compte || { total: 0, moisN: 0 };
     if (!c.total) { syCompte.textContent = "Cet appareil n'a encore rien envoyé."; return; }
     syCompte.textContent = "Cet appareil a envoyé " + c.total + " requête" + (c.total > 1 ? "s" : "") +
-      " (" + c.moisN + " ce mois-ci). Les deux appareils comptent séparément.";
+      " (" + c.moisN + " ce mois-ci). Les deux appareils comptent séparément." +
+      (surCloudflare() ? " Le quota Cloudflare se réinitialise chaque nuit." : "");
   }
 
   function tirer(){
     compterRequete();
-    return fetch(synchroURL() + "/latest", {
-      headers: { "X-Master-Key": syncReg.cle, "X-Bin-Meta": "false" },
+    return fetch(surCloudflare() ? synchroURL() : synchroURL() + "/latest", {
+      headers: entetesLecture(),
       cache: "no-store"
     }).then(function(r){
       if (!r.ok) throw new Error("HTTP " + r.status);
@@ -2504,7 +2512,7 @@
     compterRequete();
     return fetch(synchroURL(), {
       method: "PUT",
-      headers: { "Content-Type": "application/json", "X-Master-Key": syncReg.cle },
+      headers: entetesEcriture(),
       body: JSON.stringify({
         app: "taches-4-projets", version: 1,
         updatedAt: envoi,
@@ -2579,7 +2587,9 @@
     syncReg.cle = (syCle.value || "").trim();
     syncReg.actif = !!(syncReg.bin && syncReg.cle);
     garderReglages();
-    if (!syncReg.actif) { direEtat("Renseigne l'identifiant et la clé", "ko"); return; }
+    if (!syncReg.actif) { direEtat("Renseigne l'adresse et la clé", "ko"); return; }
+    montrerNoteReverif();
+    surveiller();
     synchroniser();
   });
 
@@ -2588,6 +2598,7 @@
   document.getElementById("sy-stop").addEventListener("click", function(){
     syncReg.actif = false;
     garderReglages();
+    surveiller();
     direEtat("Synchro désactivée sur cet appareil");
   });
 
@@ -2618,6 +2629,43 @@
     if (!synchroPrete()) return;
     if (Date.now() - dernierContact < delaiReverif()) return;
     synchroniser();
+  }
+
+  /* ------------------------------------------------------------------
+     SURVEILLANCE EN CONTINU (serveur Cloudflare uniquement)
+     Le quota Cloudflare repart à zéro chaque nuit (100 000 lectures par
+     jour) : l'application peut donc regarder régulièrement si l'autre
+     appareil a changé quelque chose, tant qu'elle est ouverte et visible.
+     Avec l'ancien stockage jsonbin (10 000 requêtes pour la vie du
+     compte), on s'en tient aux vérifications au retour : pas de minuterie.
+  ------------------------------------------------------------------ */
+  var REVERIF_VISIBLE = 15000;
+  var timerVisible = null;
+
+  function surveiller(){
+    if (timerVisible) { clearInterval(timerVisible); timerVisible = null; }
+    if (!synchroPrete() || !surCloudflare()) return;
+    timerVisible = setInterval(function(){
+      if (document.hidden) return;
+      reverifier();
+    }, REVERIF_VISIBLE);
+  }
+
+  /* la note sous le réglage explique le coût selon le service utilisé */
+  function montrerNoteReverif(){
+    var note = document.getElementById("note-reverif");
+    if (!note) return;
+    if (surCloudflare()) {
+      note.innerHTML = "L'application vérifie <b>toute seule</b>, toutes les 15 secondes, " +
+        "tant qu'elle est ouverte : tu n'as rien à faire. Le quota Cloudflare gratuit est de " +
+        "<b>100 000 lectures par jour</b>, remises à zéro chaque nuit — ce rythme en utilise " +
+        "moins de 1 %. Le réglage ci-dessous ne sert donc qu'à espacer si tu veux.";
+    } else {
+      note.innerHTML = "À chaque fois que tu reviens sur l'application, elle compare avec " +
+        "l'autre appareil. Chaque vérification coûte <b>une requête</b> chez jsonbin " +
+        "(10 000 pour la vie du compte gratuit) : plus c'est fréquent, plus tes tâches sont " +
+        "à jour, plus ça consomme. Le compteur ci-dessus te dit où tu en es.";
+    }
   }
 
   document.addEventListener("visibilitychange", function(){
@@ -2868,6 +2916,8 @@
   updateStats();
   montrerEtat();
   montrerFeu();
+  montrerNoteReverif();
+  surveiller();                           /* Cloudflare : vérification continue tant que l'app est ouverte */
   if (synchroPrete()) synchroniser();     /* au lancement : on récupère ce qui vient de l'autre appareil */
 
   if (!storageOK || !loadedOK) {
