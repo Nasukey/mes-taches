@@ -640,12 +640,68 @@
     transition:border-color .2s ease,color .2s ease,transform .16s var(--ease);
   }
   .page-h button:hover{border-color:var(--accent);color:var(--accent);transform:translateX(-2px)}
-  .page .modale-note{margin:0 0 18px;max-width:60ch}
-  .page .modale-actions{justify-content:flex-start}
-  .page .modale-champs{max-width:420px}
-  .page .modale-fermer{display:block;margin-left:auto;margin-right:auto}
-  .page .choix{max-width:420px}
-  .page .tailles{justify-content:flex-start}
+  .page .modale-note{margin:0 0 16px;max-width:56ch}
+  .page .modale-actions{justify-content:center;margin-bottom:0}
+  .page .modale-champs{max-width:400px;margin-left:auto;margin-right:auto}
+  .page .modale-fermer{
+    display:block;margin:4px auto 0;width:auto;
+    font-size:calc(11.5px*var(--ech));font-weight:600;color:var(--muted);
+    background:none;border:1px solid var(--line);border-radius:99px;
+    padding:calc(8px*var(--ech)) calc(16px*var(--ech));cursor:pointer;
+    transition:color .2s ease,border-color .2s ease;
+  }
+  .page .modale-fermer:hover{color:var(--accent);border-color:var(--accent)}
+  .page .choix{margin:0 auto}
+  /* tout est centré dans la page Options */
+  .page{text-align:center}
+  .page .panneau{text-align:center}
+
+  /* ---------------- les cartes de la page Options ---------------- */
+  .panneau{
+    background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+    padding:16px 14px;margin:0 0 12px;
+  }
+  .panneau-titre{
+    margin:0 0 6px;font-size:calc(13.5px*var(--ech));font-weight:700;letter-spacing:-.015em;
+  }
+  .panneau-note{
+    margin:0 auto 16px;max-width:52ch;
+    font-size:calc(11px*var(--ech));line-height:1.6;color:var(--muted);
+  }
+  .panneau-note.bas{margin-bottom:10px}
+  .panneau .modale-sous-titre{margin:14px 0 8px}
+  .panneau .projets{max-width:520px;margin:0 auto}
+  /* les champs de saisie restent alignés à gauche, sinon c'est pénible à remplir */
+  .page .projet input[type="text"], .page textarea, .page .modale-champs input{text-align:left}
+
+  /* un seul style de bouton partout, arrondi */
+  .tailles, .choix{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:0}
+  .tailles button, .modale-actions button, details.avance > summary{
+    appearance:none;cursor:pointer;font:inherit;font-weight:600;
+    font-size:calc(11.5px*var(--ech));
+    color:var(--ink-2);background:var(--surface);border:1.5px solid var(--line);
+    border-radius:99px;padding:calc(8px*var(--ech)) calc(16px*var(--ech));
+    transition:border-color .2s ease,color .2s ease,background .2s ease,transform .16s var(--ease);
+  }
+  .tailles button:hover, .modale-actions button:hover, details.avance > summary:hover{
+    border-color:var(--accent);color:var(--accent);
+  }
+  .tailles button:active, .modale-actions button:active{transform:scale(.97)}
+  .tailles button.on{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+  .modale-actions button.principal{background:var(--accent);border-color:var(--accent);color:#fff}
+  .modale-actions button.principal:hover{opacity:.9;color:#fff}
+
+  /* les réglages techniques, repliés */
+  details.avance{margin-top:14px;border-top:1px solid var(--line);padding-top:12px}
+  details.avance.seul{margin-top:0;border-top:0;padding-top:0}
+  details.avance > summary{
+    display:inline-block;list-style:none;color:var(--muted);
+  }
+  details.avance > summary::-webkit-details-marker{display:none}
+  details.avance > summary::after{content:"   \203A"}
+  details.avance[open] > summary{margin-bottom:14px}
+  details.avance[open] > summary::after{content:"   \2304"}
+  details.avance.seul > summary{font-size:calc(12px*var(--ech))}
   @media (max-width:720px){
     .page{padding-left:16px;padding-right:16px}
   }
@@ -724,11 +780,26 @@
     <h2>Options</h2>
   </div>
 
-    <p class="modale-sous-titre">Affichage</p>
-    <p class="modale-note">
-      Ces réglages restent sur <b>cet appareil</b> : tu peux garder le tableau classique
-      sur l'ordinateur et les cartes sur le téléphone.
+  <!-- 1. ce qu'on utilise le plus : les projets eux-mêmes -->
+  <section class="panneau">
+    <h3 class="panneau-titre">Mes projets</h3>
+    <p class="panneau-note">
+      Le <b>nom</b> et la <b>couleur</b> de chaque projet. Sur le tableau, les noms sont
+      verrouillés : tout se règle ici. Les flèches changent l'ordre, la croix supprime
+      le projet (une confirmation te prévient).
     </p>
+    <div class="projets" id="projets-liste"></div>
+    <div class="modale-actions" style="margin-top:14px">
+      <button id="projet-ajouter" type="button">+ Ajouter un projet</button>
+    </div>
+  </section>
+
+  <!-- 2. l'affichage : réglé une fois, puis oublié -->
+  <section class="panneau">
+    <h3 class="panneau-titre">Affichage</h3>
+    <p class="panneau-note">Ces réglages restent sur cet appareil.</p>
+
+    <p class="modale-sous-titre">Disposition</p>
     <div class="choix">
       <button type="button" class="op-mode" data-mode="tableau">
         <span class="apercu">
@@ -742,16 +813,17 @@
         <span class="etiq">Cartes</span>
       </button>
     </div>
+
     <p class="modale-sous-titre">Taille du texte</p>
     <div class="tailles">
       <button type="button" class="op-taille" data-taille="normal">Normal</button>
       <button type="button" class="op-taille" data-taille="grand">Grand</button>
       <button type="button" class="op-taille" data-taille="max">Maxi</button>
     </div>
-    <p class="modale-sous-titre" style="margin-top:18px">Teinte des projets</p>
-    <p class="modale-note" style="margin-bottom:10px">
+
+    <p class="modale-sous-titre">Teinte des projets</p>
+    <p class="panneau-note bas">
       Le fond de chaque colonne prend une version très claire de la couleur de son projet.
-      « Aucune » remet tous les fonds en blanc (ou en sombre la nuit).
     </p>
     <div class="tailles">
       <button type="button" class="op-teinte" data-teinte="aucune">Aucune</button>
@@ -759,89 +831,83 @@
       <button type="button" class="op-teinte" data-teinte="marquee">Marquée</button>
     </div>
 
-    <p class="modale-sous-titre" style="margin-top:18px">Projet terminé</p>
-    <p class="modale-note" style="margin-bottom:10px">
+    <p class="modale-sous-titre">Projet terminé</p>
+    <p class="panneau-note bas">
       Quand toutes les tâches d'un projet sont cochées, soit il se range en bas de page
-      (et remonte d'un clic sur son étiquette), soit il reste à sa place avec son badge
-      « Terminé ». Dans les deux cas, il garde sa couleur et son avancement.
+      (et remonte d'un clic sur son étiquette), soit il reste à sa place.
     </p>
     <div class="tailles">
       <button type="button" class="op-fini" data-fini="ranger">Le ranger en bas</button>
       <button type="button" class="op-fini" data-fini="garder">Le laisser affiché</button>
     </div>
+  </section>
 
-    <div class="modale-sep"></div>
-
-    <h2>Mes projets</h2>
-    <p class="modale-note">
-      Le <b>nom</b> et la <b>couleur</b> de chaque projet. Sur le tableau, les noms sont
-      verrouillés : tout se règle ici. Tu peux ajouter des projets ou en supprimer —
-      attention, supprimer un projet supprime aussi ses tâches.
-    </p>
-    <div class="projets" id="projets-liste"></div>
-    <div class="modale-actions" style="margin-top:12px">
-      <button id="projet-ajouter" type="button">+ Ajouter un projet</button>
-    </div>
-
-    <div class="modale-sep"></div>
-
-    <h2>Synchronisation automatique</h2>
-    <p class="modale-note">
-      Pour que ton PC et ton téléphone aient <b>toujours les mêmes tâches</b>, sans rien faire.
-      Colle ici l'<b>adresse de ton serveur Cloudflare</b> et ta <b>clé secrète</b> (voir la note
-      « GUIDE-cloudflare » fournie avec l'application). Ces deux valeurs restent sur cet
-      appareil, elles ne sont jamais dans le fichier du site. À faire une fois par appareil.
-    </p>
-    <div class="modale-champs">
-      <label for="sy-id">Adresse du serveur
-        <input id="sy-id" type="text" spellcheck="false" autocomplete="off" placeholder="https://mes-taches.xxx.workers.dev">
-      </label>
-      <label for="sy-cle">Clé secrète
-        <input id="sy-cle" type="password" spellcheck="false" autocomplete="off" placeholder="la clé que tu as choisie">
-      </label>
-    </div>
-    <div class="modale-actions">
-      <button id="sy-activer" type="button">Activer la synchro</button>
-      <button id="sy-maintenant" type="button">Synchroniser maintenant</button>
-      <button id="sy-stop" type="button">Désactiver</button>
-    </div>
+  <!-- 3. la synchro : l'état d'abord, les réglages techniques repliés -->
+  <section class="panneau">
+    <h3 class="panneau-titre">Synchronisation</h3>
     <p class="modale-etat" id="sy-etat">Non configurée</p>
     <p class="modale-etat" id="sy-compte"></p>
-
-    <p class="modale-sous-titre" style="margin-top:18px">Quand vérifier</p>
-    <p class="modale-note" style="margin-bottom:10px" id="note-reverif">
-      À chaque fois que tu reviens sur l'application, elle compare avec l'autre appareil.
-      Chaque vérification coûte <b>une requête</b> chez jsonbin (10 000 pour la vie du compte
-      gratuit) : plus c'est fréquent, plus tes tâches sont à jour, plus ça consomme.
-      Le compteur ci-dessus te dit où tu en es.
-    </p>
-    <div class="tailles">
-      <button type="button" class="op-reverif" data-reverif="tout">À chaque retour</button>
-      <button type="button" class="op-reverif" data-reverif="minute">1 minute</button>
-      <button type="button" class="op-reverif" data-reverif="cinq">5 minutes</button>
+    <div class="modale-actions" style="margin-top:8px">
+      <button id="sy-maintenant" type="button" class="principal">Synchroniser maintenant</button>
     </div>
-    <button class="modale-fermer" id="sy-restaurer" type="button" hidden>Restaurer la version d'avant la dernière synchro</button>
 
-    <div class="modale-sep"></div>
+    <details class="avance">
+      <summary>Réglages avancés</summary>
+      <p class="panneau-note">
+        Pour brancher cet appareil : l'<b>adresse du serveur</b> et la <b>clé secrète</b>
+        (voir la note « GUIDE-cloudflare »). Ces deux valeurs restent ici et ne sont jamais
+        dans le fichier du site. À faire une fois par appareil.
+      </p>
+      <div class="modale-champs">
+        <label for="sy-id">Adresse du serveur
+          <input id="sy-id" type="text" spellcheck="false" autocomplete="off" placeholder="https://mes-taches.xxx.workers.dev">
+        </label>
+        <label for="sy-cle">Clé secrète
+          <input id="sy-cle" type="password" spellcheck="false" autocomplete="off" placeholder="la clé que tu as choisie">
+        </label>
+      </div>
+      <div class="modale-actions">
+        <button id="sy-activer" type="button">Activer la synchro</button>
+        <button id="sy-stop" type="button">Désactiver</button>
+      </div>
 
-    <h2>Transférer mes tâches à la main</h2>
-    <p class="modale-note">
-      Utile seulement si tu ne veux pas de synchro automatique. Chaque appareil garde ses propres
-      tâches : <b>1)</b> copie les données ici, <b>2)</b> envoie-les toi (mail, WhatsApp…),
-      <b>3)</b> colle-les dans la case sur l'autre appareil et importe.
-    </p>
-    <div class="modale-actions">
-      <button id="tr-copier" type="button">Copier mes données</button>
-      <button id="tr-fichier" type="button">Télécharger un fichier</button>
-    </div>
-    <textarea id="tr-zone" placeholder="Colle ici les données copiées depuis l'autre appareil…" spellcheck="false"></textarea>
-    <div class="modale-actions">
-      <button id="tr-importer" type="button">Importer ce qui est collé</button>
-      <button id="tr-ouvrir" type="button">Choisir un fichier…</button>
-    </div>
-    <input type="file" id="tr-input" accept="application/json,.json,text/plain" hidden>
+      <p class="modale-sous-titre">Quand vérifier</p>
+      <p class="panneau-note bas" id="note-reverif">
+        À chaque fois que tu reviens sur l'application, elle compare avec l'autre appareil.
+        Chaque vérification coûte <b>une requête</b> chez jsonbin (10 000 pour la vie du compte
+        gratuit) : plus c'est fréquent, plus tes tâches sont à jour, plus ça consomme.
+      </p>
+      <div class="tailles">
+        <button type="button" class="op-reverif" data-reverif="tout">À chaque retour</button>
+        <button type="button" class="op-reverif" data-reverif="minute">1 minute</button>
+        <button type="button" class="op-reverif" data-reverif="cinq">5 minutes</button>
+      </div>
+      <button class="modale-fermer" id="sy-restaurer" type="button" hidden>Restaurer la version d'avant la dernière synchro</button>
+    </details>
+  </section>
 
-    <button class="modale-fermer" id="op-fermer" type="button" style="margin-top:18px">Retour aux tâches</button>
+  <!-- 4. le transfert à la main : replié, tout en bas -->
+  <section class="panneau">
+    <details class="avance seul">
+      <summary>Transférer mes tâches à la main</summary>
+      <p class="panneau-note">
+        Utile seulement si tu ne veux pas de synchro automatique : <b>1)</b> copie les données,
+        <b>2)</b> envoie-les toi (mail, WhatsApp…), <b>3)</b> colle-les sur l'autre appareil.
+      </p>
+      <div class="modale-actions">
+        <button id="tr-copier" type="button">Copier mes données</button>
+        <button id="tr-fichier" type="button">Télécharger un fichier</button>
+      </div>
+      <textarea id="tr-zone" placeholder="Colle ici les données copiées depuis l'autre appareil…" spellcheck="false"></textarea>
+      <div class="modale-actions">
+        <button id="tr-importer" type="button">Importer ce qui est collé</button>
+        <button id="tr-ouvrir" type="button">Choisir un fichier…</button>
+      </div>
+      <input type="file" id="tr-input" accept="application/json,.json,text/plain" hidden>
+    </details>
+  </section>
+
+  <button class="modale-fermer" id="op-fermer" type="button">Retour aux tâches</button>
 </section>
 
 <div class="toast" id="toast" role="status" aria-live="polite">
