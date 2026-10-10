@@ -759,6 +759,17 @@
       <button type="button" class="op-teinte" data-teinte="marquee">Marquée</button>
     </div>
 
+    <p class="modale-sous-titre" style="margin-top:18px">Projet terminé</p>
+    <p class="modale-note" style="margin-bottom:10px">
+      Quand toutes les tâches d'un projet sont cochées, soit il se range en bas de page
+      (et remonte d'un clic sur son étiquette), soit il reste à sa place avec son badge
+      « Terminé ». Dans les deux cas, il garde sa couleur et son avancement.
+    </p>
+    <div class="tailles">
+      <button type="button" class="op-fini" data-fini="ranger">Le ranger en bas</button>
+      <button type="button" class="op-fini" data-fini="garder">Le laisser affiché</button>
+    </div>
+
     <div class="modale-sep"></div>
 
     <h2>Mes projets</h2>
@@ -895,7 +906,7 @@
      tableau (4 colonnes) ou cartes (un projet à la fois) + taille du texte
   ------------------------------------------------------------------ */
   var CLE_OPTIONS = "taches.4projets.options";
-  var options = { affichage: "tableau", taille: "normal", teinte: "legere", reverif: "tout" };
+  var options = { affichage: "tableau", taille: "normal", teinte: "legere", reverif: "tout", finProjet: "ranger" };
   try {
     var opLues = JSON.parse(localStorage.getItem(CLE_OPTIONS) || "{}") || {};
     if (opLues.affichage === "cartes") options.affichage = "cartes";
@@ -912,6 +923,7 @@
     if (opLues.reverif === "tout" || opLues.reverif === "minute" || opLues.reverif === "cinq") {
       options.reverif = opLues.reverif;
     }
+    if (opLues.finProjet === "garder") options.finProjet = "garder";
   } catch (e) {}
 
   function appliquerOptions(){
@@ -1093,17 +1105,24 @@
   function isDone(i){ var s = stats(i); return s.total > 0 && s.done === s.total; }
   /* fini = tout est coché, ou le projet a été terminé puis vidé : il reste en bas */
   function estFini(i){ return isDone(i) || !!state.projects[i].fini; }
-  function isArchived(i){ return estFini(i) && !revealed[i]; }
+  /* Réglage : « ranger » = le projet terminé descend en bas (et remonte d'un
+     clic sur son étiquette) ; « garder » = il reste à sa place. */
+  function isArchived(i){
+    if (options.finProjet === "garder") return false;
+    return estFini(i) && !revealed[i];
+  }
 
   var chipsSig = "";
   function renderChips(){
-    var sig = state.projects.map(function(p, i){
+    /* en mode « laisser affiché », il n'y a rien à remonter : pas d'étiquettes */
+    var sig = options.finProjet === "garder" ? "garder" : state.projects.map(function(p, i){
       return estFini(i) ? i + ":" + (revealed[i] ? 1 : 0) + ":" + p.name : "";
     }).join("|");
     if (sig === chipsSig) return;
     chipsSig = sig;
 
     finiHost.innerHTML = "";
+    if (options.finProjet === "garder") return;
     state.projects.forEach(function(p, i){
       if (!estFini(i)) return;
       var sep = document.createElement("span");
@@ -1146,8 +1165,9 @@
         col.querySelector(".bar i").style.width = s.pct + "%";
         col.classList.toggle("is-done", complet);
 
-        /* projet terminé : on le laisse fêter sa fin, puis il descend en bas */
-        if (complet && !revealed[i] && !archTimer[i]) {
+        /* projet terminé : on le laisse fêter sa fin, puis il descend en bas
+           (sauf si le réglage demande de le laisser à sa place) */
+        if (complet && options.finProjet !== "garder" && !revealed[i] && !archTimer[i]) {
           archTimer[i] = setTimeout(function(){
             archTimer[i] = null;
             var c = colOf(i);
@@ -3069,6 +3089,9 @@
     Array.prototype.forEach.call(pageOptions.querySelectorAll(".op-reverif"), function(b){
       b.classList.toggle("on", b.dataset.reverif === options.reverif);
     });
+    Array.prototype.forEach.call(pageOptions.querySelectorAll(".op-fini"), function(b){
+      b.classList.toggle("on", b.dataset.fini === options.finProjet);
+    });
   }
 
   function ouvrirOptions(){
@@ -3131,6 +3154,17 @@
       majBoutonsOptions();
       dernierContact = 0;                 /* le nouveau réglage s'applique tout de suite */
       synchroniser();
+      return;
+    }
+    var fini = ev.target.closest(".op-fini");
+    if (fini) {
+      options.finProjet = (fini.dataset.fini === "garder") ? "garder" : "ranger";
+      garderOptions();
+      majBoutonsOptions();
+      /* le tableau se réorganise tout de suite, sans quitter les Options */
+      renderChips();
+      renderBoard();
+      updateStats();
     }
   });
 
