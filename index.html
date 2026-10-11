@@ -2768,6 +2768,49 @@
       (surCloudflare() ? " Le quota Cloudflare se réinitialise chaque nuit." : "");
   }
 
+  /* ------------------------------------------------------------------
+     CE QUI A ÉTÉ CONFIRMÉ ENVOYÉ
+     On garde la liste des tâches qui existaient lors de la dernière synchro
+     RÉUSSIE (donc présentes aussi sur l'autre appareil). Ça permet de faire
+     la différence entre :
+       - une tâche d'ici que l'autre n'a jamais reçue  -> on la garde, toujours ;
+       - une tâche que l'autre a supprimée exprès      -> on respecte la suppression.
+     Sans ça, une tâche tapée ici pouvait être écrasée par une version plus
+     ancienne venue d'ailleurs, simplement parce que l'horodatage était plus
+     récent. C'est exactement ce qui a fait disparaître des tâches.
+  ------------------------------------------------------------------ */
+  var CLE_CONFIRME = "taches.4projets.confirme";
+  var idsConfirmes = {};
+  try {
+    var conf = JSON.parse(localStorage.getItem(CLE_CONFIRME) || "{}") || {};
+    if (conf && typeof conf === "object") idsConfirmes = conf;
+  } catch (e) { idsConfirmes = {}; }
+
+  function marquerConfirme(){
+    var nouveau = {};
+    state.projects.forEach(function(p){
+      (p.tasks || []).forEach(function(t){ if (t && t.id) nouveau[t.id] = 1; });
+    });
+    idsConfirmes = nouveau;
+    try { localStorage.setItem(CLE_CONFIRME, JSON.stringify(idsConfirmes)); } catch (e) {}
+  }
+
+  /* Une tâche d'ici qui n'est ni chez l'autre, ni dans la liste confirmée :
+     elle n'a jamais voyagé. On refuse de la perdre. */
+  function aDesTachesJamaisEnvoyees(distant){
+    var chezLautre = {};
+    ((distant && distant.projects) || []).forEach(function(p){
+      (p.tasks || []).forEach(function(t){ if (t && t.id) chezLautre[t.id] = 1; });
+    });
+    var trouve = false;
+    state.projects.forEach(function(p){
+      (p.tasks || []).forEach(function(t){
+        if (t && t.id && !chezLautre[t.id] && !idsConfirmes[t.id]) trouve = true;
+      });
+    });
+    return trouve;
+  }
+
   function tirer(){
     compterRequete();
     return fetch(surCloudflare() ? synchroURL() : synchroURL() + "/latest", {
@@ -2781,8 +2824,11 @@
       if (!distant) return "vide";
       if ((Number(distant.updatedAt) || 0) > (Number(state.updatedAt) || 0)) {
         /* Des choses tapées ici ne sont pas encore parties : on les garde
-           au lieu de les écraser. Rien de ce que tu viens d'écrire n'est perdu. */
-        if (aEnvoyer()) {
+           au lieu de les écraser. Rien de ce que tu viens d'écrire n'est perdu.
+           Et même si l'application CROIT avoir tout envoyé, on vérifie : une
+           tâche qui n'existe nulle part ailleurs et qui n'a jamais été
+           confirmée est conservée elle aussi. */
+        if (aEnvoyer() || aDesTachesJamaisEnvoyees(distant)) {
           appliquerDistant(fusionner(distant), true);
           return "fusion";
         }
@@ -2873,6 +2919,7 @@
     /* cet appareil est de nouveau à jour — sauf après une fusion, où il reste
        justement des choses à envoyer */
     syncReg.envoi = aPousser ? 0 : state.updatedAt;
+    if (!aPousser) marquerConfirme();      /* l'autre appareil a exactement ça */
     garderReglages();
     firstPaint = true;
     celebrated = false;
@@ -2898,6 +2945,7 @@
       if (!r.ok) throw new Error("HTTP " + r.status);
       syncReg.envoi = envoi;                /* mémorisé : on ne renverra pas la même chose pour rien */
       dernierEnvoiReel = Date.now();
+      marquerConfirme();                    /* l'autre appareil a maintenant tout ça */
       garderReglages();
       return true;
     });
@@ -2972,6 +3020,8 @@
       syncReg.envoi = 0;
       syncReg.compte = null;
       dernierEnvoiReel = 0;
+      idsConfirmes = {};            /* autre serveur : on ne sait plus ce qui a été confirmé */
+      try { localStorage.removeItem(CLE_CONFIRME); } catch (e) {}
     }
     garderReglages();
     if (!syncReg.actif) { direEtat("Renseigne l'adresse et la clé", "ko"); return; }
