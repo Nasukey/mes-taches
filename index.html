@@ -577,6 +577,23 @@
   .projet .sup:hover{color:var(--danger);background:var(--danger-soft)}
   .projet .sup[disabled]{opacity:.25;pointer-events:none}
 
+  /* masquer / réafficher un projet (seulement s'il est vide) */
+  .projet .oeil{
+    appearance:none;border:0;background:none;cursor:pointer;flex:0 0 auto;
+    color:var(--muted);width:calc(28px*var(--ech));height:calc(28px*var(--ech));
+    padding:0;border-radius:9px;display:grid;place-items:center;
+    transition:color .2s ease,background .2s ease,opacity .2s ease;
+  }
+  .projet .oeil svg{width:calc(15px*var(--ech));height:calc(15px*var(--ech));fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+  .projet .oeil:hover{color:var(--accent);background:var(--accent-soft)}
+  .projet .oeil.off{color:var(--danger)}
+  .projet .oeil.off:hover{color:var(--danger);background:var(--danger-soft)}
+  .projet .oeil[disabled]{opacity:.2;pointer-events:none}
+  /* un projet masqué reste visible ici, mais en retrait */
+  .projet.masque{opacity:.5}
+  .projet.masque input[type="text"]{font-style:italic}
+  .projet.masque:hover{opacity:.8}
+
   /* flèches pour changer l'ordre des projets */
   .projet .ordre{display:grid;gap:1px;flex:0 0 auto}
   .projet .ordre button{
@@ -786,7 +803,8 @@
     <p class="panneau-note">
       Le <b>nom</b> et la <b>couleur</b> de chaque projet. Sur le tableau, les noms sont
       verrouillés : tout se règle ici. Les flèches changent l'ordre, la croix supprime
-      le projet (une confirmation te prévient).
+      le projet (une confirmation te prévient), et l'<b>œil</b> masque un projet vide :
+      il reste enregistré, mais il n'apparaît plus sur le tableau.
     </p>
     <div class="projets" id="projets-liste"></div>
     <div class="modale-actions" style="margin-top:14px">
@@ -1005,7 +1023,7 @@
   function blank(){
     return {
       projects: DEFAULT_NAMES.map(function(n, i){
-        return { id: uid(), name: n, couleur: PALETTE[i], tasks: [], fini: false };
+        return { id: uid(), name: n, couleur: PALETTE[i], tasks: [], fini: false, masque: false };
       }),
       demain: [], updatedAt: 0
     };
@@ -1100,7 +1118,10 @@
         tasks: tasks.filter(function(t){ return t && typeof t.text === "string" && t.text.trim(); })
                     .map(function(t){ return { id: t.id || uid(), text: t.text, done: !!t.done, doneAt: t.doneAt || 0,
                                                niv: Math.max(0, Math.min(2, Number(t.niv) || 0)) }; }),
-        fini: !!src.fini
+        fini: !!src.fini,
+        /* masqué : le projet existe toujours (nom, couleur, ordre) mais
+           n'apparaît plus sur le tableau. Réservé aux projets vides. */
+        masque: !!src.masque
       });
     }
     return out;
@@ -1177,12 +1198,20 @@
     if (options.finProjet === "garder") return false;
     return estFini(i) && !revealed[i];
   }
+  /* Un projet MASQUÉ existe toujours (nom, couleur, ordre) mais n'apparaît
+     plus sur le tableau. C'est réservé aux projets VIDES : dès qu'il contient
+     une tâche, il se réaffiche tout seul. Rien n'est jamais caché par surprise. */
+  function estMasque(i){
+    var p = state.projects[i];
+    return !!(p && p.masque && !p.tasks.length);
+  }
+  function estAffiche(i){ return !isArchived(i) && !estMasque(i); }
 
   var chipsSig = "";
   function renderChips(){
     /* en mode « laisser affiché », il n'y a rien à remonter : pas d'étiquettes */
     var sig = options.finProjet === "garder" ? "garder" : state.projects.map(function(p, i){
-      return estFini(i) ? i + ":" + (revealed[i] ? 1 : 0) + ":" + p.name : "";
+      return (estFini(i) && !estMasque(i)) ? i + ":" + (revealed[i] ? 1 : 0) + ":" + p.name : "";
     }).join("|");
     if (sig === chipsSig) return;
     chipsSig = sig;
@@ -1190,7 +1219,7 @@
     finiHost.innerHTML = "";
     if (options.finProjet === "garder") return;
     state.projects.forEach(function(p, i){
-      if (!estFini(i)) return;
+      if (!estFini(i) || estMasque(i)) return;
       var sep = document.createElement("span");
       sep.className = "sep";
       sep.textContent = "·";
@@ -1502,7 +1531,7 @@
   function renderBoard(){
     board.innerHTML = "";
     var visible = [];
-    state.projects.forEach(function(_, i){ if (!isArchived(i)) visible.push(i); });
+    state.projects.forEach(function(_, i){ if (estAffiche(i)) visible.push(i); });
 
     visible.forEach(function(i){
       board.appendChild(makeColumn(i));
@@ -1512,6 +1541,13 @@
     board.style.setProperty("--cols", Math.max(1, visible.length));
     board.hidden = visible.length === 0;
     allGone.hidden = visible.length !== 0;
+    if (visible.length === 0) {
+      var toutMasque = state.projects.length > 0;
+      state.projects.forEach(function(_, i){ if (!estMasque(i)) toutMasque = false; });
+      allGone.textContent = toutMasque
+        ? "Tous tes projets sont masqués. Ouvre les Options \u2192 Mes projets pour en réafficher un."
+        : "Tous les projets sont terminés. Clique sur un projet en bas de page pour le rouvrir.";
+    }
     renderChips();
     renderPastilles();
     majPastilles();
@@ -1531,7 +1567,7 @@
     pastilles.hidden = false;
 
     var visibles = [];
-    state.projects.forEach(function(_, i){ if (!isArchived(i)) visibles.push(i); });
+    state.projects.forEach(function(_, i){ if (estAffiche(i)) visibles.push(i); });
     var sig = visibles.map(function(i){ return i + ":" + state.projects[i].name; }).join("|");
     if (sig === sigPastilles) return;
     sigPastilles = sig;
@@ -2676,7 +2712,7 @@
       /* projet créé ici, que l'autre appareil ne connaît pas encore */
       if (!cible) {
         d.projects.push({
-          id: p.id, name: p.name, couleur: p.couleur, fini: !!p.fini,
+          id: p.id, name: p.name, couleur: p.couleur, fini: !!p.fini, masque: !!p.masque,
           tasks: p.tasks.map(function(t){
             return { id: t.id, text: t.text, done: !!t.done, doneAt: t.doneAt || 0, niv: Number(t.niv) || 0 };
           })
@@ -2986,7 +3022,7 @@
     hostProjets.innerHTML = "";
     state.projects.forEach(function(p, i){
       var ligne = document.createElement("div");
-      ligne.className = "projet";
+      ligne.className = "projet" + (p.masque ? " masque" : "");
       ligne.dataset.i = i;
 
       var pastille = document.createElement("input");
@@ -3014,6 +3050,22 @@
                                : "Supprimer ce projet (et ses tâches)";
       sup.setAttribute("aria-label", sup.title);
 
+      /* masquer / réafficher : possible seulement si le projet est vide */
+      var vide = !p.tasks.length;
+      var oeil = document.createElement("button");
+      oeil.type = "button";
+      oeil.className = "oeil" + (p.masque ? " off" : "");
+      oeil.disabled = !vide && !p.masque;
+      oeil.title = p.masque
+        ? "Réafficher ce projet sur le tableau"
+        : (vide ? "Masquer ce projet : il n'apparaîtra plus sur le tableau"
+                : "Un projet ne peut être masqué que s'il est vide");
+      oeil.setAttribute("aria-label", oeil.title);
+      oeil.setAttribute("aria-pressed", p.masque ? "true" : "false");
+      oeil.innerHTML = p.masque
+        ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 5.2A9.7 9.7 0 0 1 12 5c5 0 9 4.4 9 7 0 .9-.6 2.1-1.8 3.3M6.4 6.5C4 8.1 2 10.6 2 12c0 2.5 4 7 10 7 1.6 0 3-.4 4.3-1.1"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>'
+        : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-6.5 10-6.5S22 12 22 12s-4 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="2.8"/></svg>';
+
       /* flèches pour déplacer le projet dans l'ordre */
       var ordre = document.createElement("div");
       ordre.className = "ordre";
@@ -3036,6 +3088,7 @@
 
       ligne.appendChild(pastille);
       ligne.appendChild(champ);
+      ligne.appendChild(oeil);
       ligne.appendChild(ordre);
       ligne.appendChild(sup);
       hostProjets.appendChild(ligne);
@@ -3050,6 +3103,21 @@
     state.projects.splice(j, 0, p);
     rafraichirProjets();
     renderProjets();
+  }
+
+  /* masque ou réaffiche un projet. Réservé aux projets vides : un projet qui
+     contient des tâches ne peut pas être masqué (sinon on cacherait du travail). */
+  function basculerMasque(i){
+    var p = state.projects[i];
+    if (!p) return;
+    if (!p.masque && p.tasks.length) {
+      showToast("Un projet ne peut être masqué que s'il est vide", true, 3200);
+      return;
+    }
+    p.masque = !p.masque;
+    rafraichirProjets();          /* enregistre et redessine le tableau */
+    renderProjets();
+    showToast(p.masque ? "Projet masqué" : "Projet réaffiché", false, 2400);
   }
 
   function projetDeLElement(el){
@@ -3095,7 +3163,7 @@
     state.projects.push({
       name: DEFAULT_NAMES[n] || ("Projet " + (n + 1)),
       couleur: PALETTE[n % PALETTE.length],
-      tasks: [], fini: false
+      tasks: [], fini: false, masque: false
     });
     rafraichirProjets();
     renderProjets();
@@ -3133,6 +3201,8 @@
       if (!ev.target || !ev.target.closest) return;
       var sup = ev.target.closest(".sup");
       if (sup) { supprimerProjet(projetDeLElement(sup)); return; }
+      var oeil = ev.target.closest(".oeil");
+      if (oeil) { basculerMasque(projetDeLElement(oeil)); return; }
       var monte = ev.target.closest(".monte");
       if (monte) { deplacerProjet(projetDeLElement(monte), -1); return; }
       var descend = ev.target.closest(".descend");
