@@ -284,6 +284,18 @@
   .task.done .box svg{stroke-dashoffset:0}
   .task.done .txt{color:var(--muted);text-decoration-color:currentColor;cursor:default}
   .task.done .txt:hover{background:transparent}
+
+  /* un lien dans une tâche (ordinateur seulement) */
+  .txt a.lien{
+    color:var(--accent);text-decoration:underline;
+    text-decoration-thickness:1px;text-underline-offset:2px;
+    cursor:pointer;border-radius:3px;
+    transition:background .18s ease;
+  }
+  .txt a.lien:hover{background:var(--accent-soft)}
+  /* pendant la modification, le lien laisse passer le clic (on écrit dedans) */
+  [contenteditable="true"] a.lien{pointer-events:none;color:inherit;text-decoration:inherit;background:none}
+  .task.done .txt a.lien{color:var(--muted)}
   .task.pop .box{animation:pop .24s var(--bounce)}
   @keyframes pop{0%{transform:scale(1)}35%{transform:scale(.8)}100%{transform:scale(1)}}
   .task.flash{animation:flash .42s ease-out}
@@ -1424,7 +1436,7 @@
 
       var txt = document.createElement("span");
       txt.className = "txt";
-      txt.textContent = t.text;
+      remplirTexte(txt, t.text);
       txt.dataset.id = t.id;
       txt.tabIndex = 0;
       txt.setAttribute("role", "button");
@@ -1474,6 +1486,50 @@
     champ.value = valeur;
     champ.focus();
     try { champ.setSelectionRange(valeur.length, valeur.length); } catch (e) {}
+  }
+
+  /* ------------------------------------------------------------------
+     LES LIENS DANS LES TÂCHES
+     Cliquables sur ordinateur (souris), PAS sur téléphone : là-bas, taper
+     le texte sert à le modifier, et on ne veut pas qu'un appui ouvre le
+     navigateur par surprise. Le texte enregistré n'est jamais modifié :
+     seul l'affichage change.
+  ------------------------------------------------------------------ */
+  var liensCliquables = !(window.matchMedia &&
+    window.matchMedia("(hover: none) and (pointer: coarse)").matches);
+  var MOTIF_LIEN = /(https?:\/\/[^\s]+|www\.[^\s]+)/i;
+
+  function lienDans(texte){
+    var m = MOTIF_LIEN.exec(String(texte == null ? "" : texte));
+    if (!m) return null;
+    var vu = m[1].replace(/[.,;:!?)\]]+$/, "");      /* on enlève la ponctuation finale */
+    return /^www\./i.test(vu) ? "https://" + vu : vu;
+  }
+
+  /* remplit le texte d'une tâche : simple, ou avec le lien rendu cliquable */
+  function remplirTexte(txt, texte){
+    texte = String(texte == null ? "" : texte);
+    txt.textContent = texte;
+    if (!liensCliquables) return;
+
+    var vu = MOTIF_LIEN.exec(texte);
+    if (!vu) return;
+    var brut = vu[1];
+    var debut = texte.indexOf(brut);
+    if (debut < 0) return;
+
+    var url = lienDans(texte);
+    txt.textContent = "";
+    if (debut > 0) txt.appendChild(document.createTextNode(texte.slice(0, debut)));
+    var a = document.createElement("a");
+    a.className = "lien";
+    a.href = url;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    a.textContent = brut;                    /* on affiche exactement ce qui a été tapé */
+    txt.appendChild(a);
+    var reste = texte.slice(debut + brut.length);
+    if (reste) txt.appendChild(document.createTextNode(reste));
   }
 
   function makeColumn(i){
@@ -1858,7 +1914,7 @@
         finirEdition(txt, i, true);
       } else if (k === "Escape" || c === 27) {
         ev.preventDefault();
-        txt.textContent = t.text;                 /* on remet le texte d'origine */
+        remplirTexte(txt, t.text);                 /* on remet le texte d'origine */
         finirEdition(txt, i, false, true);
       }
     };
@@ -1894,7 +1950,7 @@
       /* c'était une ligne vide : la première ligne collée vient dedans */
       if (!String(txt.textContent || "").trim()) {
         t.text = nouvelles.shift().text;
-        txt.textContent = t.text;
+        remplirTexte(txt, t.text);
       }
       liste.splice.apply(liste, [k + 1, 0].concat(nouvelles));
       nettoyerNiveaux(i);
@@ -1926,7 +1982,7 @@
     var change = false;
 
     if (annuler) {
-      txt.textContent = t.text;
+      remplirTexte(txt, t.text);
     } else if (!texte) {
       /* Rien d'écrit. Deux cas, et dans les deux on retire la ligne :
          - c'est la ligne suivante qu'on venait de créer (Entrée) ;
@@ -1938,12 +1994,11 @@
         nettoyerNiveaux(i);
         change = true;
       } else {
-        txt.textContent = t.text;
+        remplirTexte(txt, t.text);
       }
     } else if (texte !== t.text) {
-      /* si on écrit une adresse ou un lien, on le rend cliquable ailleurs */
       t.text = texte;
-      txt.textContent = texte;
+      remplirTexte(txt, texte);
       change = true;
     }
 
@@ -2037,6 +2092,10 @@
       if (txtCop) copyLine(txtCop, cop);
       return;
     }
+
+    /* un clic sur un lien rendu cliquable : on laisse le navigateur l'ouvrir
+       dans un nouvel onglet, on n'entre pas en modification de la tâche */
+    if (ev.target.closest && ev.target.closest("a.lien")) return;
 
     /* un clic sur le texte : on modifie la tâche */
     var txt = ev.target.closest(".txt");
