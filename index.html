@@ -1031,7 +1031,51 @@
     try { localStorage.setItem(CLE_OPTIONS, JSON.stringify(options)); } catch (e) {}
   }
 
-  function uid(){ return Math.random().toString(36).slice(2, 10); }
+  /* ------------------------------------------------------------------
+     IDENTIFIANTS DES TÂCHES ET DES PROJETS
+     Chaque tâche porte un identifiant unique, tiré au hasard. C'est LUI qui
+     permet à la synchro de reconnaître une tâche d'un appareil à l'autre :
+     si deux tâches portaient le même, la fusion les prendrait pour la même
+     et en perdrait une. On tire donc large : 12 octets au hasard (96 bits),
+     plus l'heure. Le hasard vient de crypto quand le navigateur le propose
+     (bien meilleur que Math.random), et par précaution on vérifie que
+     l'identifiant n'a pas déjà été donné dans cette session.
+  ------------------------------------------------------------------ */
+  var idsDonnes = {};
+  function uid(){
+    var id = "";
+    for (var essai = 0; essai < 10; essai++) {
+      var hasard = "";
+      try {
+        var octets = new Uint8Array(12);
+        crypto.getRandomValues(octets);
+        for (var i = 0; i < octets.length; i++) hasard += ("0" + octets[i].toString(16)).slice(-2);
+      } catch (e) {
+        hasard = Math.random().toString(36).slice(2, 12) + Math.random().toString(36).slice(2, 10);
+      }
+      id = "t" + Date.now().toString(36) + hasard;
+      if (!idsDonnes[id]) { idsDonnes[id] = 1; return id; }
+    }
+    return id + Math.random().toString(36).slice(2, 8);
+  }
+
+  /* Filet de sécurité : deux tâches ne doivent jamais porter le même
+     identifiant (données anciennes, import, ou simple malchance). On en
+     redonne un à la seconde — sans ça, la synchro les confondrait. */
+  function reparerIds(projets){
+    var idsTaches = {}, idsProjets = {}, corriges = 0;
+    (projets || []).forEach(function(p){
+      if (!p) return;
+      if (idsProjets[p.id]) { p.id = uid(); corriges++; }
+      idsProjets[p.id] = 1;
+      (p.tasks || []).forEach(function(t){
+        if (idsTaches[t.id]) { t.id = uid(); corriges++; }
+        idsTaches[t.id] = 1;
+      });
+    });
+    return corriges;
+  }
+
   function blank(){
     return {
       projects: DEFAULT_NAMES.map(function(n, i){
@@ -1136,6 +1180,8 @@
         masque: !!src.masque
       });
     }
+    /* aucun identifiant en double : c'est la sécurité de la synchro */
+    reparerIds(out);
     return out;
   }
 
@@ -2526,7 +2572,14 @@
         : "Ces données ne contiennent aucune t\u00e2che. Continuer quand m\u00eame ?",
       "Importer",
       function(){
-        try { localStorage.setItem(KEY, JSON.stringify({ projects: data.projects, demain: data.demain || [] })); }
+        try {
+          /* on enregistre des données remises au propre : chaque tâche repart
+             avec un identifiant valide et unique, comme à l'enregistrement */
+          localStorage.setItem(KEY, JSON.stringify({
+            projects: normaliserProjets(data.projects),
+            demain: normaliserDemain(data.demain)
+          }));
+        }
         catch (e) { showToast("Impossible d'enregistrer sur cet appareil", true, 3600); return; }
         location.reload();
       });
