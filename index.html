@@ -303,6 +303,10 @@
   .task.removing{opacity:0;transform:translateX(14px)}
 
   /* ---------------- sous-tâches (rattachées à la ligne du dessus) ---------------- */
+  /* Position du texte des tâches (le carré reste toujours à gauche) */
+  [data-texte="centre"] .txt{text-align:center}
+  [data-texte="centre"] .txt.edition:empty::before{text-align:center}
+
   .task.n1{margin-left:calc(16px*var(--ech))}
   .task.n2{margin-left:calc(32px*var(--ech))}
   .task.n1::before,.task.n2::before{
@@ -768,9 +772,11 @@
     d.setAttribute("data-taille", o.taille || (tactile ? "grand" : "normal"));
     d.setAttribute("data-teinte",
       (o.teinte === "aucune" || o.teinte === "marquee") ? o.teinte : "legere");
+    d.setAttribute("data-texte", o.texte === "centre" ? "centre" : "gauche");
   } catch (e) {
     document.documentElement.setAttribute("data-taille", "normal");
     document.documentElement.setAttribute("data-teinte", "legere");
+    document.documentElement.setAttribute("data-texte", "gauche");
   }
 })();
 </script>
@@ -849,6 +855,15 @@
       <button type="button" class="op-taille" data-taille="normal">Normal</button>
       <button type="button" class="op-taille" data-taille="grand">Grand</button>
       <button type="button" class="op-taille" data-taille="max">Maxi</button>
+    </div>
+
+    <p class="modale-sous-titre">Position du texte</p>
+    <p class="panneau-note bas">
+      Le carré reste toujours à gauche : c'est le texte de la tâche qui se place.
+    </p>
+    <div class="tailles">
+      <button type="button" class="op-texte" data-texte="gauche">À gauche</button>
+      <button type="button" class="op-texte" data-texte="centre">Centré</button>
     </div>
 
     <p class="modale-sous-titre">Teinte des projets</p>
@@ -1002,7 +1017,7 @@
      tableau (4 colonnes) ou cartes (un projet à la fois) + taille du texte
   ------------------------------------------------------------------ */
   var CLE_OPTIONS = "taches.4projets.options";
-  var options = { affichage: "tableau", taille: "normal", teinte: "legere", reverif: "tout", finProjet: "ranger" };
+  var options = { affichage: "tableau", taille: "normal", teinte: "legere", reverif: "tout", finProjet: "ranger", texte: "gauche" };
   try {
     var opLues = JSON.parse(localStorage.getItem(CLE_OPTIONS) || "{}") || {};
     if (opLues.affichage === "cartes") options.affichage = "cartes";
@@ -1020,12 +1035,14 @@
       options.reverif = opLues.reverif;
     }
     if (opLues.finProjet === "garder") options.finProjet = "garder";
+    if (opLues.texte === "centre") options.texte = "centre";
   } catch (e) {}
 
   function appliquerOptions(){
     document.documentElement.setAttribute("data-affichage", options.affichage);
     document.documentElement.setAttribute("data-taille", options.taille);
     document.documentElement.setAttribute("data-teinte", options.teinte);
+    document.documentElement.setAttribute("data-texte", options.texte === "centre" ? "centre" : "gauche");
   }
   function garderOptions(){
     try { localStorage.setItem(CLE_OPTIONS, JSON.stringify(options)); } catch (e) {}
@@ -3400,6 +3417,9 @@
     Array.prototype.forEach.call(pageOptions.querySelectorAll(".op-fini"), function(b){
       b.classList.toggle("on", b.dataset.fini === options.finProjet);
     });
+    Array.prototype.forEach.call(pageOptions.querySelectorAll(".op-texte"), function(b){
+      b.classList.toggle("on", b.dataset.texte === options.texte);
+    });
   }
 
   function ouvrirOptions(){
@@ -3473,6 +3493,14 @@
       renderChips();
       renderBoard();
       updateStats();
+      return;
+    }
+    var posTexte = ev.target.closest(".op-texte");
+    if (posTexte) {
+      options.texte = (posTexte.dataset.texte === "centre") ? "centre" : "gauche";
+      garderOptions();
+      appliquerOptions();
+      majBoutonsOptions();
     }
   });
 
