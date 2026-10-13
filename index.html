@@ -1290,6 +1290,12 @@
      ANIMATION DES CHIFFRES
   ------------------------------------------------------------------ */
   function tween(el, from, to, dur, suffix){
+    if (!el) return;
+    /* Sécurité : si la valeur de départ n'est pas un nombre (par exemple un
+       projet qui n'avait jamais été affiché), on pose directement la valeur
+       finale. Sans ça, on affichait « NaN % ». */
+    if (!isFinite(from)) { from = to; dur = 0; }
+    if (!isFinite(to)) { to = 0; }
     if (reduceMotion || dur <= 0 || from === to) { el.textContent = Math.round(to) + (suffix || ""); return; }
     var t0 = performance.now();
     (function step(t){
@@ -1300,11 +1306,15 @@
     })(t0);
   }
 
-  var shownPct = [0, 0, 0, 0], shownDone = 0, shownTotal = 0, firstPaint = true;
+  /* Ces tableaux doivent couvrir TOUS les projets possibles (8), pas seulement
+     les 4 d'origine : au 5ᵉ projet, « shownPct[i] » n'existait pas et le
+     pourcentage s'affichait « NaN % ». */
+  function tableau(n, valeur){ var a = []; for (var i = 0; i < n; i++) a.push(valeur); return a; }
+  var shownPct = tableau(NB_PROJETS_MAX, 0), shownDone = 0, shownTotal = 0, firstPaint = true;
 
   /* ---- projets terminés : rangés en bas, réaffichables d'un clic ---- */
-  var revealed = [false, false, false, false];   /* projet terminé remis à l'écran */
-  var archTimer = [null, null, null, null];
+  var revealed = tableau(NB_PROJETS_MAX, false);   /* projet terminé remis à l'écran */
+  var archTimer = tableau(NB_PROJETS_MAX, null);
 
   function colOf(i){ return board.querySelector('.col[data-i="' + i + '"]'); }
   function isDone(i){ var s = stats(i); return s.total > 0 && s.done === s.total; }
