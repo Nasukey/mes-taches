@@ -688,8 +688,8 @@
     transition:border-color .2s ease,color .2s ease,background .2s ease,opacity .2s ease;
   }
   .confirm-actions button:hover{border-color:var(--accent);color:var(--accent)}
-  .confirm-actions button.danger{background:var(--danger);border-color:var(--danger);color:#fff}
-  .confirm-actions button.danger:hover{opacity:.88;color:#fff}
+  .confirm-actions button.danger{background:var(--danger);border-color:var(--danger);color:var(--surface)}
+  .confirm-actions button.danger:hover{opacity:.88;color:var(--surface)}
   @media (hover: none){
     .projet input[type="text"]{font-size:16px}
   }
@@ -707,7 +707,7 @@
     background:linear-gradient(var(--bg) 76%,transparent);
   }
   .page h2{margin:0 0 8px;font-size:calc(15px*var(--ech));font-weight:700;letter-spacing:-.02em}
-  .page-h h2{margin:0;font-size:calc(21px*var(--ech));font-weight:700;letter-spacing:-.025em;flex:1;order:2;text-align:right}
+  .page-h h2{margin:0;font-size:calc(21px*var(--ech));font-weight:700;letter-spacing:-.025em;flex:1;order:2;text-align:center}
   .page-h button{
     order:1;appearance:none;cursor:pointer;font:inherit;
     font-size:calc(11.5px*var(--ech));font-weight:600;color:var(--ink-2);
@@ -731,15 +731,24 @@
   /* tout est centré dans la page Options */
   .page{text-align:center}
   .page .panneau{text-align:center}
-  /* La page Options s'élargit et range ses cartes sur DEUX colonnes, pour
-     qu'elle reste courte. Sur téléphone (ou fenêtre étroite) : une seule
-     colonne, dans le même ordre qu'avant. */
+  /* La page Options s'élargit et range ses cartes sur DEUX colonnes.
+     Chaque colonne descend à son rythme : pas de vide sous une carte courte,
+     contrairement à une grille qui aligne les lignes. */
   #page-options{max-width:1020px}
-  .panneaux{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
-  .panneaux > .panneau{margin:0}
+  .panneaux{display:flex;gap:12px;align-items:flex-start}
+  .panneaux > .colonne{flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:12px}
+  .panneaux .panneau{margin:0}
   @media (max-width:900px){
     #page-options{max-width:680px}
-    .panneaux{grid-template-columns:1fr}
+    /* une seule colonne : les cartes redeviennent une file, et on remet
+       l'ordre de lecture habituel (Mes projets, Affichage, Synchro, Données) */
+    .panneaux{display:flex;flex-direction:column;gap:12px}
+    .panneaux > .colonne{display:contents}
+    .panneaux .panneau{margin:0}
+    .panneaux .p-projets{order:1}
+    .panneaux .p-affichage{order:2}
+    .panneaux .p-synchro{order:3}
+    .panneaux .p-donnees{order:4}
   }
 
   /* ---------------- les cartes de la page Options ---------------- */
@@ -774,8 +783,13 @@
   }
   .tailles button:active, .modale-actions button:active{transform:scale(.97)}
   .tailles button.on{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
-  .modale-actions button.principal{background:var(--accent);border-color:var(--accent);color:#fff}
-  .modale-actions button.principal:hover{opacity:.9;color:#fff}
+  .modale-actions button.principal{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+  .modale-actions button.principal:hover{opacity:.9;color:var(--surface)}
+  /* filet de sécurité si un navigateur ne connaît pas --surface ici */
+  @media (prefers-color-scheme: dark){
+    .modale-actions button.principal{color:#0d0e11}
+    .modale-actions button.principal:hover{color:#0d0e11}
+  }
 
   /* les réglages techniques, repliés */
   details.avance{margin-top:14px;border-top:1px solid var(--line);padding-top:12px}
@@ -871,7 +885,8 @@
 
   <!-- 1. ce qu'on utilise le plus : les projets eux-mêmes -->
   <div class="panneaux">
-  <section class="panneau">
+  <div class="colonne">
+<section class="panneau p-projets">
     <h3 class="panneau-titre">Mes projets</h3>
     <p class="panneau-note">
       Le <b>nom</b> et la <b>couleur</b> de chaque projet. Sur le tableau, les noms sont
@@ -884,9 +899,51 @@
       <button id="projet-ajouter" type="button">+ Ajouter un projet</button>
     </div>
   </section>
+<section class="panneau p-synchro">
+    <h3 class="panneau-titre">Synchronisation</h3>
+    <p class="modale-etat" id="sy-etat">Non configurée</p>
+    <p class="modale-etat" id="sy-compte"></p>
+    <div class="modale-actions" style="margin-top:8px">
+      <button id="sy-maintenant" type="button" class="principal">Synchroniser maintenant</button>
+    </div>
 
-  <!-- 2. l'affichage : réglé une fois, puis oublié -->
-  <section class="panneau">
+    <details class="avance">
+      <summary>Réglages avancés</summary>
+      <p class="panneau-note">
+        Pour brancher cet appareil : l'<b>adresse du serveur</b> et la <b>clé secrète</b>
+        (voir la note « GUIDE-cloudflare »). Ces deux valeurs restent ici et ne sont jamais
+        dans le fichier du site. À faire une fois par appareil.
+      </p>
+      <div class="modale-champs">
+        <label for="sy-id">Adresse du serveur
+          <input id="sy-id" type="text" spellcheck="false" autocomplete="off" placeholder="https://mes-taches.xxx.workers.dev">
+        </label>
+        <label for="sy-cle">Clé secrète
+          <input id="sy-cle" type="password" spellcheck="false" autocomplete="off" placeholder="la clé que tu as choisie">
+        </label>
+      </div>
+      <div class="modale-actions">
+        <button id="sy-activer" type="button">Activer la synchro</button>
+        <button id="sy-stop" type="button">Désactiver</button>
+      </div>
+
+      <p class="modale-sous-titre">Quand vérifier</p>
+      <p class="panneau-note bas" id="note-reverif">
+        À chaque fois que tu reviens sur l'application, elle compare avec l'autre appareil.
+        Chaque vérification coûte <b>une requête</b> chez jsonbin (10 000 pour la vie du compte
+        gratuit) : plus c'est fréquent, plus tes tâches sont à jour, plus ça consomme.
+      </p>
+      <div class="tailles">
+        <button type="button" class="op-reverif" data-reverif="tout">À chaque retour</button>
+        <button type="button" class="op-reverif" data-reverif="minute">1 minute</button>
+        <button type="button" class="op-reverif" data-reverif="cinq">5 minutes</button>
+      </div>
+      <button class="modale-fermer" id="sy-restaurer" type="button" hidden>Restaurer la version d'avant la dernière synchro</button>
+    </details>
+  </section>
+  </div>
+  <div class="colonne">
+<section class="panneau p-affichage">
     <h3 class="panneau-titre">Affichage</h3>
     <p class="panneau-note">Ces réglages restent sur cet appareil.</p>
 
@@ -952,53 +1009,7 @@
       <button type="button" class="op-fini" data-fini="garder">Le laisser affiché</button>
     </div>
   </section>
-
-  <!-- 3. la synchro : l'état d'abord, les réglages techniques repliés -->
-  <section class="panneau">
-    <h3 class="panneau-titre">Synchronisation</h3>
-    <p class="modale-etat" id="sy-etat">Non configurée</p>
-    <p class="modale-etat" id="sy-compte"></p>
-    <div class="modale-actions" style="margin-top:8px">
-      <button id="sy-maintenant" type="button" class="principal">Synchroniser maintenant</button>
-    </div>
-
-    <details class="avance">
-      <summary>Réglages avancés</summary>
-      <p class="panneau-note">
-        Pour brancher cet appareil : l'<b>adresse du serveur</b> et la <b>clé secrète</b>
-        (voir la note « GUIDE-cloudflare »). Ces deux valeurs restent ici et ne sont jamais
-        dans le fichier du site. À faire une fois par appareil.
-      </p>
-      <div class="modale-champs">
-        <label for="sy-id">Adresse du serveur
-          <input id="sy-id" type="text" spellcheck="false" autocomplete="off" placeholder="https://mes-taches.xxx.workers.dev">
-        </label>
-        <label for="sy-cle">Clé secrète
-          <input id="sy-cle" type="password" spellcheck="false" autocomplete="off" placeholder="la clé que tu as choisie">
-        </label>
-      </div>
-      <div class="modale-actions">
-        <button id="sy-activer" type="button">Activer la synchro</button>
-        <button id="sy-stop" type="button">Désactiver</button>
-      </div>
-
-      <p class="modale-sous-titre">Quand vérifier</p>
-      <p class="panneau-note bas" id="note-reverif">
-        À chaque fois que tu reviens sur l'application, elle compare avec l'autre appareil.
-        Chaque vérification coûte <b>une requête</b> chez jsonbin (10 000 pour la vie du compte
-        gratuit) : plus c'est fréquent, plus tes tâches sont à jour, plus ça consomme.
-      </p>
-      <div class="tailles">
-        <button type="button" class="op-reverif" data-reverif="tout">À chaque retour</button>
-        <button type="button" class="op-reverif" data-reverif="minute">1 minute</button>
-        <button type="button" class="op-reverif" data-reverif="cinq">5 minutes</button>
-      </div>
-      <button class="modale-fermer" id="sy-restaurer" type="button" hidden>Restaurer la version d'avant la dernière synchro</button>
-    </details>
-  </section>
-
-  <!-- 4. le transfert à la main : replié, tout en bas -->
-  <section class="panneau">
+<section class="panneau p-donnees">
     <details class="avance seul">
       <summary>Transférer mes tâches à la main</summary>
       <p class="panneau-note">
@@ -1017,6 +1028,7 @@
       <input type="file" id="tr-input" accept="application/json,.json,text/plain" hidden>
     </details>
   </section>
+  </div>
   </div>
 
   <button class="modale-fermer" id="op-fermer" type="button">Retour aux tâches</button>
