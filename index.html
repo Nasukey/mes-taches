@@ -157,7 +157,10 @@
   }
 
   /* ---------------- tableau ---------------- */
-  .board{display:grid;grid-template-columns:repeat(var(--cols,4),minmax(0,1fr));gap:14px;flex:1;min-height:0}
+  /* --parts est posé par le script quand une colonne est élargie (28fr contre
+     18fr). Sinon on retombe sur des colonnes égales. Les petits écrans gardent
+     leurs propres règles plus bas : sur téléphone, rien ne change. */
+  .board{display:grid;grid-template-columns:var(--parts, repeat(var(--cols,4),minmax(0,1fr)));gap:14px;flex:1;min-height:0}
   .col{
     position:relative;overflow:hidden;
     background:var(--teinte,var(--surface));border:1px solid var(--line);border-radius:var(--radius);
@@ -634,6 +637,17 @@
   .projet .oeil.off{color:var(--danger)}
   .projet .oeil.off:hover{color:var(--danger);background:var(--danger-soft)}
   .projet .oeil[disabled]{opacity:.2;pointer-events:none}
+  /* élargir une colonne (mode tableau, sur ordinateur) */
+  .projet .large{
+    appearance:none;border:0;background:none;cursor:pointer;flex:0 0 auto;
+    color:var(--muted);width:calc(28px*var(--ech));height:calc(28px*var(--ech));
+    padding:0;border-radius:9px;display:grid;place-items:center;
+    transition:color .2s ease,background .2s ease,opacity .2s ease;
+  }
+  .projet .large svg{width:calc(16px*var(--ech));height:calc(16px*var(--ech));fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+  .projet .large:hover{color:var(--accent);background:var(--accent-soft)}
+  .projet .large.on{color:var(--accent)}
+  .projet .large[disabled]{opacity:.2;pointer-events:none}
   /* un projet masqué reste visible ici, mais en retrait */
   .projet.masque{opacity:.5}
   .projet.masque input[type="text"]{font-style:italic}
@@ -1058,7 +1072,7 @@
      tableau (4 colonnes) ou cartes (un projet à la fois) + taille du texte
   ------------------------------------------------------------------ */
   var CLE_OPTIONS = "taches.4projets.options";
-  var options = { affichage: "tableau", taille: "normal", teinte: "legere", reverif: "tout", finProjet: "ranger", texte: "gauche", police: "jakarta" };
+  var options = { affichage: "tableau", taille: "normal", teinte: "legere", reverif: "tout", finProjet: "ranger", texte: "gauche", police: "jakarta", larges: [] };
   try {
     var opLues = JSON.parse(localStorage.getItem(CLE_OPTIONS) || "{}") || {};
     if (opLues.affichage === "cartes") options.affichage = "cartes";
@@ -1078,6 +1092,9 @@
     if (opLues.finProjet === "garder") options.finProjet = "garder";
     if (opLues.texte === "centre") options.texte = "centre";
     if (opLues.police === "systeme" || opLues.police === "atkinson") options.police = opLues.police;
+    if (opLues.larges && opLues.larges.length) {
+      options.larges = opLues.larges.filter(function(x){ return typeof x === "string"; });
+    }
   } catch (e) {}
 
   function appliquerOptions(){
@@ -1711,6 +1728,14 @@
     });
 
     board.style.setProperty("--cols", Math.max(1, visible.length));
+    var larges = indicesLarges(visible);
+    if (larges.length) {
+      board.style.setProperty("--parts", visible.map(function(i){
+        return (larges.indexOf(i) > -1 ? 28 : 18) + "fr";
+      }).join(" "));
+    } else {
+      board.style.removeProperty("--parts");
+    }
     board.hidden = visible.length === 0;
     allGone.hidden = visible.length !== 0;
     if (visible.length === 0) {
@@ -3298,6 +3323,26 @@
         ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18"/><path d="M10.6 5.2A9.7 9.7 0 0 1 12 5c5 0 9 4.4 9 7 0 .9-.6 2.1-1.8 3.3M6.4 6.5C4 8.1 2 10.6 2 12c0 2.5 4 7 10 7 1.6 0 3-.4 4.3-1.1"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>'
         : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-6.5 10-6.5S22 12 22 12s-4 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="2.8"/></svg>';
 
+      /* élargir cette colonne (mode tableau, sur ordinateur) */
+      var visiblesIci = projetsAffiches();
+      var limIci = quotaLarges(visiblesIci.length);
+      var marque = estMarqueeLarge(p.id);
+      var dejaLarges = indicesLarges(visiblesIci).length;
+      var large = document.createElement("button");
+      large.type = "button";
+      large.className = "large" + (marque ? " on" : "");
+      large.disabled = !marque && (limIci === 0 || dejaLarges >= limIci);
+      large.title = marque
+        ? "Remettre cette colonne à taille normale"
+        : (limIci === 0
+            ? "Avec " + visiblesIci.length + " projets affichés, il n'y a plus la place"
+            : (dejaLarges >= limIci
+                ? "Maximum atteint (" + limIci + ") : remets d'abord une colonne à taille normale"
+                : "Élargir cette colonne (mode tableau, sur ordinateur)"));
+      large.setAttribute("aria-label", large.title);
+      large.setAttribute("aria-pressed", marque ? "true" : "false");
+      large.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h18"/><path d="M7 8l-4 4 4 4"/><path d="M17 8l4 4-4 4"/></svg>';
+
       /* flèches pour déplacer le projet dans l'ordre */
       var ordre = document.createElement("div");
       ordre.className = "ordre";
@@ -3321,6 +3366,7 @@
       ligne.appendChild(pastille);
       ligne.appendChild(champ);
       ligne.appendChild(oeil);
+      ligne.appendChild(large);
       ligne.appendChild(ordre);
       ligne.appendChild(sup);
       hostProjets.appendChild(ligne);
@@ -3350,6 +3396,63 @@
     rafraichirProjets();          /* enregistre et redessine le tableau */
     renderProjets();
     showToast(p.masque ? "Projet masqué" : "Projet réaffiché", false, 2400);
+  }
+
+  /* ------------------------------------------------------------------
+     ÉLARGIR UNE COLONNE (mode tableau, sur ordinateur)
+     Avec 5 projets : 4 × 18 % + 1 × 28 % = 100 % exactement.
+     Combien peut-on en élargir ? Cela dépend de la place disponible :
+       4 projets ou moins -> 2
+       5 projets          -> 1
+       6 projets et plus  -> 0   (il n'y a plus la place)
+     Le choix est mémorisé même quand la place manque : si tu masques un
+     projet et que la place revient, la colonne se réélargit toute seule.
+  ------------------------------------------------------------------ */
+  function quotaLarges(n){ return n <= 4 ? 2 : (n === 5 ? 1 : 0); }
+  function estMarqueeLarge(id){ return !!id && options.larges.indexOf(id) > -1; }
+
+  /* les projets affichés qui seront élargis, dans l'ordre du tableau */
+  function indicesLarges(visibles){
+    var lim = quotaLarges(visibles.length);
+    if (!lim) return [];
+    var out = [];
+    visibles.forEach(function(i){
+      if (out.length < lim && estMarqueeLarge(state.projects[i].id)) out.push(i);
+    });
+    return out;
+  }
+  function projetsAffiches(){
+    var v = [];
+    state.projects.forEach(function(_, k){ if (estAffiche(k)) v.push(k); });
+    return v;
+  }
+
+  function basculerLarge(i){
+    var p = state.projects[i];
+    if (!p || !p.id) return;
+    var visibles = projetsAffiches();
+    if (estMarqueeLarge(p.id)) {
+      options.larges = options.larges.filter(function(x){ return x !== p.id; });
+      showToast("Colonne remise à taille normale", false, 2200);
+    } else {
+      var lim = quotaLarges(visibles.length);
+      if (!lim) {
+        showToast("Avec " + visibles.length + " projets affichés, il n'y a plus la place pour élargir",
+                  true, 3600);
+        return;
+      }
+      if (indicesLarges(visibles).length >= lim) {
+        showToast("Avec " + visibles.length + " projets affichés, tu peux élargir " + lim +
+                  (lim > 1 ? " colonnes au maximum" : " colonne seulement"), true, 3600);
+        return;
+      }
+      options.larges.push(p.id);
+      showToast("Colonne élargie — utile en mode tableau", false, 2400);
+    }
+    garderOptions();
+    renderProjets();
+    renderBoard();
+    updateStats();
   }
 
   function projetDeLElement(el){
@@ -3435,6 +3538,8 @@
       if (sup) { supprimerProjet(projetDeLElement(sup)); return; }
       var oeil = ev.target.closest(".oeil");
       if (oeil) { basculerMasque(projetDeLElement(oeil)); return; }
+      var btnLarge = ev.target.closest(".large");
+      if (btnLarge) { basculerLarge(projetDeLElement(btnLarge)); return; }
       var monte = ev.target.closest(".monte");
       if (monte) { deplacerProjet(projetDeLElement(monte), -1); return; }
       var descend = ev.target.closest(".descend");
