@@ -731,6 +731,16 @@
   /* tout est centré dans la page Options */
   .page{text-align:center}
   .page .panneau{text-align:center}
+  /* La page Options s'élargit et range ses cartes sur DEUX colonnes, pour
+     qu'elle reste courte. Sur téléphone (ou fenêtre étroite) : une seule
+     colonne, dans le même ordre qu'avant. */
+  #page-options{max-width:1020px}
+  .panneaux{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
+  .panneaux > .panneau{margin:0}
+  @media (max-width:900px){
+    #page-options{max-width:680px}
+    .panneaux{grid-template-columns:1fr}
+  }
 
   /* ---------------- les cartes de la page Options ---------------- */
   .panneau{
@@ -860,6 +870,7 @@
   </div>
 
   <!-- 1. ce qu'on utilise le plus : les projets eux-mêmes -->
+  <div class="panneaux">
   <section class="panneau">
     <h3 class="panneau-titre">Mes projets</h3>
     <p class="panneau-note">
@@ -1006,6 +1017,7 @@
       <input type="file" id="tr-input" accept="application/json,.json,text/plain" hidden>
     </details>
   </section>
+  </div>
 
   <button class="modale-fermer" id="op-fermer" type="button">Retour aux tâches</button>
 </section>
