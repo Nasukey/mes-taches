@@ -748,7 +748,6 @@
     .panneaux .p-projets{order:1}
     .panneaux .p-affichage{order:2}
     .panneaux .p-synchro{order:3}
-    .panneaux .p-donnees{order:4}
   }
 
   /* ---------------- les cartes de la page Options ---------------- */
@@ -1009,26 +1008,7 @@
       <button type="button" class="op-fini" data-fini="garder">Le laisser affiché</button>
     </div>
   </section>
-<section class="panneau p-donnees">
-    <details class="avance seul">
-      <summary>Transférer mes tâches à la main</summary>
-      <p class="panneau-note">
-        Utile seulement si tu ne veux pas de synchro automatique : <b>1)</b> copie les données,
-        <b>2)</b> envoie-les toi (mail, WhatsApp…), <b>3)</b> colle-les sur l'autre appareil.
-      </p>
-      <div class="modale-actions">
-        <button id="tr-copier" type="button">Copier mes données</button>
-        <button id="tr-fichier" type="button">Télécharger un fichier</button>
-      </div>
-      <textarea id="tr-zone" placeholder="Colle ici les données copiées depuis l'autre appareil…" spellcheck="false"></textarea>
-      <div class="modale-actions">
-        <button id="tr-importer" type="button">Importer ce qui est collé</button>
-        <button id="tr-ouvrir" type="button">Choisir un fichier…</button>
-      </div>
-      <input type="file" id="tr-input" accept="application/json,.json,text/plain" hidden>
-    </details>
-  </section>
-  </div>
+</div>
   </div>
 
   <button class="modale-fermer" id="op-fermer" type="button">Retour aux tâches</button>
@@ -2661,49 +2641,6 @@
     updateStats();
   });
 
-  /* ------------------------------------------------------------------
-     TRANSFÉRER MES TÂCHES D'UN APPAREIL À L'AUTRE
-  ------------------------------------------------------------------ */
-  var trZone = document.getElementById("tr-zone");
-
-  function donneesTexte(){
-    return JSON.stringify({
-      app: "taches-4-projets", version: 1,
-      exportedAt: new Date().toISOString(),
-      projects: state.projects,
-      demain: state.demain || []
-    }, null, 1);
-  }
-
-  function importerDonnees(texte){
-    var data;
-    try { data = JSON.parse(String(texte)); }
-    catch (e) { showToast("Données illisibles : ce texte n'est pas valide", true, 3600); return; }
-    if (!data || !Array.isArray(data.projects)) { showToast("Ces données ne contiennent pas de tâches", true, 3600); return; }
-
-    var total = 0;
-    data.projects.forEach(function(p){ if (p && Array.isArray(p.tasks)) total += p.tasks.length; });
-    demanderConfirmation(
-      "Importer ces données ?",
-      total
-        ? "Les tâches de cet appareil seront remplacées par ces " + total + " t\u00e2che" +
-          (total > 1 ? "s" : "") + " (projets et noms compris). C'est d\u00e9finitif."
-        : "Ces données ne contiennent aucune t\u00e2che. Continuer quand m\u00eame ?",
-      "Importer",
-      function(){
-        try {
-          /* on enregistre des données remises au propre : chaque tâche repart
-             avec un identifiant valide et unique, comme à l'enregistrement */
-          localStorage.setItem(KEY, JSON.stringify({
-            projects: normaliserProjets(data.projects),
-            demain: normaliserDemain(data.demain)
-          }));
-        }
-        catch (e) { showToast("Impossible d'enregistrer sur cet appareil", true, 3600); return; }
-        location.reload();
-      });
-  }
-
   /* Le bouton du bas synchronise directement, sans ouvrir de page.
      S'il n'y a rien de configuré, on ouvre les Options pour le faire. */
   document.getElementById("sync-btn").addEventListener("click", function(){
@@ -2716,43 +2653,6 @@
     synchroniser().then(function(){
       showToast(messageEtat || "Synchronisation terminée", false, 2800);
     });
-  });
-
-  document.getElementById("tr-copier").addEventListener("click", function(){
-    copyText(donneesTexte(), function(ok){
-      showToast(ok ? "Données copiées — envoie-les toi puis colle-les sur l'autre appareil"
-                   : "Copie impossible : utilise « Télécharger un fichier »", false, 4200);
-    });
-  });
-
-  document.getElementById("tr-fichier").addEventListener("click", function(){
-    var blob = new Blob([donneesTexte()], { type: "application/json" });
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement("a");
-    a.href = url;
-    a.download = "mes-taches-" + new Date().toISOString().slice(0, 10) + ".json";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
-  });
-
-  document.getElementById("tr-importer").addEventListener("click", function(){
-    if (!trZone.value.trim()) { showToast("Colle d'abord les données dans la case", false, 2600); return; }
-    importerDonnees(trZone.value);
-  });
-
-  document.getElementById("tr-ouvrir").addEventListener("click", function(){
-    document.getElementById("tr-input").click();
-  });
-
-  document.getElementById("tr-input").addEventListener("change", function(ev){
-    var f = ev.target.files && ev.target.files[0];
-    if (!f) return;
-    var lecteur = new FileReader();
-    lecteur.onload = function(){ importerDonnees(lecteur.result); };
-    lecteur.readAsText(f);
-    ev.target.value = "";
   });
 
   /* application installable : on met la page en cache pour qu'elle marche hors ligne */
