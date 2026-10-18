@@ -328,6 +328,9 @@
   /* Position du texte des tâches (le carré reste toujours à gauche) */
   [data-texte="centre"] .txt{text-align:center}
   [data-texte="centre"] .txt.edition:empty::before{text-align:center}
+  /* Exception par projet (Options > Affichage > Toujours à gauche) : ces
+     colonnes gardent leur texte à gauche même quand tout le reste est centré. */
+  [data-texte="centre"] .col.texte-gauche .txt{text-align:left}
 
   .task.n1{margin-left:calc(16px*var(--ech))}
   .task.n2{margin-left:calc(32px*var(--ech))}
@@ -977,6 +980,14 @@
       <button type="button" class="op-texte" data-texte="centre">Centré</button>
     </div>
 
+    <div id="op-exceptions" hidden>
+      <p class="modale-sous-titre">Toujours à gauche</p>
+      <p class="panneau-note bas">
+        Ces projets restent alignés à gauche, même quand le texte est centré.
+      </p>
+      <div class="tailles" id="op-exceptions-liste"></div>
+    </div>
+
     <p class="modale-sous-titre">Police</p>
     <p class="panneau-note bas">
       « Système » prend la police de ton appareil. « Lisibilité » (Atkinson
@@ -1076,7 +1087,7 @@
      tableau (4 colonnes) ou cartes (un projet à la fois) + taille du texte
   ------------------------------------------------------------------ */
   var CLE_OPTIONS = "taches.4projets.options";
-  var options = { affichage: "tableau", taille: "normal", teinte: "legere", reverif: "tout", finProjet: "ranger", texte: "gauche", police: "jakarta", larges: [] };
+  var options = { affichage: "tableau", taille: "normal", teinte: "legere", reverif: "tout", finProjet: "ranger", texte: "gauche", police: "jakarta", larges: [], texteGauche: [] };
   try {
     var opLues = JSON.parse(localStorage.getItem(CLE_OPTIONS) || "{}") || {};
     if (opLues.affichage === "cartes") options.affichage = "cartes";
@@ -1098,6 +1109,9 @@
     if (opLues.police === "systeme" || opLues.police === "atkinson") options.police = opLues.police;
     if (opLues.larges && opLues.larges.length) {
       options.larges = opLues.larges.filter(function(x){ return typeof x === "string"; });
+    }
+    if (opLues.texteGauche && opLues.texteGauche.length) {
+      options.texteGauche = opLues.texteGauche.filter(function(x){ return typeof x === "string"; });
     }
   } catch (e) {}
 
@@ -1671,7 +1685,7 @@
 
   function makeColumn(i){
     var col = document.createElement("section");
-    col.className = "col";
+    col.className = "col" + (estTexteGauche(state.projects[i]) ? " texte-gauche" : "");
     appliquerCouleur(col, couleurProjet(i));
     col.dataset.i = i;
 
@@ -3295,6 +3309,7 @@
       ligne.appendChild(sup);
       hostProjets.appendChild(ligne);
     });
+    majExceptions();          /* les boutons d'exception suivent les projets */
   }
 
   /* déplace un projet d'un cran (le nouvel ordre est enregistré et synchronisé) */
@@ -3505,6 +3520,54 @@
     Array.prototype.forEach.call(pageOptions.querySelectorAll(".op-police"), function(b){
       b.classList.toggle("on", b.dataset.police === options.police);
     });
+    majExceptions();
+  }
+
+  /* ------------------------------------------------------------------
+     EXCEPTION D'ALIGNEMENT PAR PROJET
+     « Position du texte » vaut pour tout le tableau. Ici on note les projets
+     qui doivent rester à GAUCHE même quand le reste est centré — pratique
+     pour un projet comme « Timed », qu'on veut lire d'un seul coup d'œil.
+  ------------------------------------------------------------------ */
+  function estTexteGauche(p){
+    return !!(p && p.id && options.texteGauche.indexOf(p.id) > -1);
+  }
+
+  function majExceptions(){
+    var bloc = document.getElementById("op-exceptions");
+    var liste = document.getElementById("op-exceptions-liste");
+    if (!bloc || !liste) return;
+    /* sans centrage general, une exception ne veut rien dire : on la cache */
+    bloc.hidden = options.texte !== "centre";
+    liste.innerHTML = "";
+    state.projects.forEach(function(p){
+      var marque = estTexteGauche(p);
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "op-exception" + (marque ? " on" : "");
+      b.dataset.id = p.id;
+      b.textContent = p.name;
+      b.title = marque
+        ? "Ce projet suit de nouveau le réglage général"
+        : "Garder ce projet aligné à gauche, même quand le texte est centré";
+      b.setAttribute("aria-pressed", marque ? "true" : "false");
+      liste.appendChild(b);
+    });
+  }
+
+  function basculerException(id){
+    if (!id) return;
+    if (options.texteGauche.indexOf(id) > -1) {
+      options.texteGauche = options.texteGauche.filter(function(x){ return x !== id; });
+      showToast("Ce projet suit de nouveau le réglage général", false, 2400);
+    } else {
+      options.texteGauche.push(id);
+      showToast("Ce projet restera aligné à gauche", false, 2400);
+    }
+    garderOptions();
+    renderProjets();          /* remet les boutons à jour */
+    renderBoard();            /* réapplique l'alignement sur le tableau */
+    updateStats();
   }
 
   function ouvrirOptions(){
@@ -3587,6 +3650,8 @@
       majBoutonsOptions();
       return;
     }
+    var exc = ev.target.closest(".op-exception");
+    if (exc) { basculerException(exc.dataset.id); return; }
     var pol = ev.target.closest(".op-police");
     if (pol) {
       options.police = (pol.dataset.police === "systeme" || pol.dataset.police === "atkinson")
