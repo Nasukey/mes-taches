@@ -157,9 +157,10 @@
   }
 
   /* ---------------- tableau ---------------- */
-  /* --parts est posé par le script quand une colonne est élargie (28fr contre
-     18fr). Sinon on retombe sur des colonnes égales. Les petits écrans gardent
-     leurs propres règles plus bas : sur téléphone, rien ne change. */
+  /* --parts est posé par le script quand une colonne est élargie
+     (minmax(0,28fr) contre minmax(0,18fr)). Sinon on retombe sur des colonnes
+     égales. Les petits écrans gardent leurs propres règles plus bas : sur
+     téléphone, rien ne change. */
   .board{display:grid;grid-template-columns:var(--parts, repeat(var(--cols,4),minmax(0,1fr)));gap:14px;flex:1;min-height:0}
   .col{
     position:relative;overflow:hidden;
@@ -1748,8 +1749,13 @@
     board.style.setProperty("--cols", Math.max(1, visible.length));
     var larges = indicesLarges(visible);
     if (larges.length) {
+      /* minmax(0, …) est INDISPENSABLE ici. Un « fr » tout seul a pour minimum
+         la taille de son contenu : la colonne pouvait donc s'élargir toute
+         seule, déborder, et faire sauter la mise en page pendant un
+         glisser-déposer. Les colonnes normales utilisent déjà minmax(0,1fr) :
+         on applique exactement la même règle. */
       board.style.setProperty("--parts", visible.map(function(i){
-        return (larges.indexOf(i) > -1 ? 28 : 18) + "fr";
+        return "minmax(0," + (larges.indexOf(i) > -1 ? 28 : 18) + "fr)";
       }).join(" "));
     } else {
       board.style.removeProperty("--parts");
