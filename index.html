@@ -1746,7 +1746,7 @@
       renderList(i);
     });
 
-    if (typeof majLimite === "function") setTimeout(majLimite, 0);
+    if (typeof majLimite === "function") setTimeout(function(){ limiterHauteurs(); majLimite(); }, 0);
     board.style.setProperty("--cols", Math.max(1, visible.length));
     var larges = indicesLarges(visible);
     if (larges.length) {
@@ -1866,21 +1866,37 @@
     return limiteCourante;
   }
 
-  /* Le défilement vertical ne dépasse JAMAIS la fin de la carte affichée. */
-  function contenirDefilement(){
-    if (!enCartes()) return;
-    var y = window.pageYOffset || document.documentElement.scrollTop || 0;
-    if (y > limiteCourante + 1) {
-      try { window.scrollTo(0, limiteCourante); } catch (e) {}
+  /* On ne bloque plus le défilement à la main : repousser la page à chaque
+     évènement pendant que le doigt pousse provoquait une vibration du texte.
+     On limite plutôt la hauteur des cartes qui ne sont pas affichées
+     (voir limiterHauteurs), ce qui rend le débordement impossible. */
+
+  /* ------------------------------------------------------------------
+     LA PAGE PREND LA HAUTEUR DE LA CARTE AFFICHÉE
+     Les cartes non affichées sont hors écran (ou coupées au bas de la
+     fenêtre) : on peut donc leur donner la hauteur de la carte visible sans
+     que ça se voie. Résultat : la page ne fait plus la hauteur de la PLUS
+     GRANDE carte, et le défilement s'arrête naturellement à la fin de celle
+     qu'on regarde. Aucun à-coup, aucune lutte.
+  ------------------------------------------------------------------ */
+  function limiterHauteurs(){
+    var cartes = [];
+    Array.prototype.forEach.call(board.children, function(c){
+      if (c && c.classList && c.classList.contains("col")) cartes.push(c);
+    });
+    if (!enCartes() || !cartes.length) {
+      cartes.forEach(function(c){ c.style.maxHeight = ""; c.style.overflow = ""; });
+      return;
     }
+    var actif = (carteActive !== null) ? colOf(Number(carteActive)) : null;
+    if (!actif) return;
+    var h = actif.offsetHeight;
+    if (!h) return;
+    cartes.forEach(function(c){
+      if (c === actif) { c.style.maxHeight = ""; c.style.overflow = ""; }
+      else { c.style.maxHeight = h + "px"; c.style.overflow = "hidden"; }
+    });
   }
-  window.addEventListener("scroll", function(){
-    if (!enCartes()) return;
-    var y = window.pageYOffset || document.documentElement.scrollTop || 0;
-    if (y > limiteCourante + 1) {
-      try { window.scrollTo(0, limiteCourante); } catch (e) {}
-    }
-  }, { passive: true });
 
   /* met en avant la carte au centre, et la pastille correspondante */
   function majPastilles(){
@@ -1904,12 +1920,12 @@
     /* on vient de changer de carte : on garde le niveau, sans dépasser la fin */
     if (actif !== null && actif !== carteActive) {
       carteActive = actif;
+      limiterHauteurs();           /* la page prend la hauteur de cette carte */
       var limite = majLimite();
       var y = window.pageYOffset || document.documentElement.scrollTop || 0;
       if (y > limite) deplacerVerticalement(limite, 140);
-    } else if (actif !== null) {
-      majLimite();                 /* la carte a pu grandir (tâche ajoutée) */
     }
+
   }
 
   if (pastilles) {
@@ -1934,7 +1950,7 @@
     rafCartes = requestAnimationFrame(function(){ rafCartes = 0; majPastilles(); });
   }, { passive: true });
 
-  window.addEventListener("resize", function(){ renderPastilles(); majPastilles(); majLimite(); });
+  window.addEventListener("resize", function(){ renderPastilles(); majPastilles(); limiterHauteurs(); majLimite(); });
 
   /* ------------------------------------------------------------------
      TRANSFÉRER À DEMAIN (5e liste, non visible sur le tableau)
