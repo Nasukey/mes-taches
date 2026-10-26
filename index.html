@@ -539,12 +539,15 @@
   .past.actif b{display:block}
   .past:active{transform:scale(.94)}
 
-  [data-affichage="cartes"] body{display:block;overflow:auto;height:auto;min-height:100%}
-  [data-affichage="cartes"] main.wrap{display:block;padding-bottom:22px}
-  [data-affichage="cartes"] #panel-board{display:block}
+  /* Chaque carte défile POUR ELLE-MÊME. Avant, c'était la page entière qui
+     défilait : sa hauteur devenait celle de la PLUS GRANDE carte, donc en
+     bas d'une carte courte on se retrouvait au-delà de sa fin. */
+  [data-affichage="cartes"] body{display:flex;flex-direction:column;height:100%;overflow:hidden}
+  [data-affichage="cartes"] main.wrap{flex:1;min-height:0;display:flex;flex-direction:column;padding-bottom:0}
+  [data-affichage="cartes"] #panel-board{flex:1;min-height:0;display:flex;flex-direction:column}
   [data-affichage="cartes"] .board{
-    display:flex;align-items:flex-start;gap:16px;
-    overflow-x:auto;overflow-y:visible;scroll-snap-type:x mandatory;
+    display:flex;align-items:stretch;gap:16px;
+    overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;
     padding:6px 0 18px;scrollbar-width:none;min-height:0;
     -webkit-overflow-scrolling:touch;
     scroll-padding-inline:calc((100% - min(84%, 430px)) / 2);
@@ -556,6 +559,7 @@
   }
   [data-affichage="cartes"] .col{
     flex:0 0 auto;width:min(84%, 430px);scroll-snap-align:center;min-height:0;
+    display:flex;flex-direction:column;align-self:stretch;
     border-radius:26px;
     padding:calc(22px*var(--ech)) calc(18px*var(--ech)) calc(16px*var(--ech));
     box-shadow:0 20px 50px -28px rgba(20,20,26,.5);
@@ -565,7 +569,12 @@
   }
   [data-affichage="cartes"] .col:hover{transform:scale(calc(1 - var(--d,0) * .06))}
   [data-affichage="cartes"] .col.centre{box-shadow:0 28px 62px -26px rgba(20,20,26,.55)}
-  [data-affichage="cartes"] .list{overflow:visible;margin-top:calc(16px*var(--ech))}
+  [data-affichage="cartes"] .list{
+    flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;
+    -webkit-overflow-scrolling:touch;
+    margin-top:calc(16px*var(--ech));
+    overscroll-behavior:contain;   /* le défilement ne se propage pas à la page */
+  }
   [data-affichage="cartes"] .col-h{min-height:0}
   [data-affichage="cartes"] .name{font-size:calc(17px*var(--ech));letter-spacing:-.02em}
   [data-affichage="cartes"] .pct{font-size:calc(30px*var(--ech));letter-spacing:-.045em}
@@ -1833,7 +1842,14 @@
       if (!b) return;
       var col = colOf(Number(b.dataset.i));
       if (!col) return;
-      if (col.scrollIntoView) col.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+      /* On ne déplace QUE horizontalement. Avant, scrollIntoView() recalait
+         aussi la verticale et ramenait la carte tout en haut, ce qui fait
+         perdre sa place quand on est au milieu d'une longue liste. */
+      var rb = board.getBoundingClientRect();
+      var rc = col.getBoundingClientRect();
+      var gauche = board.scrollLeft + (rc.left - rb.left) - (rb.width - rc.width) / 2;
+      try { board.scrollTo({ left: gauche, behavior: "smooth" }); }
+      catch (e) { board.scrollLeft = gauche; }
     });
   }
 
