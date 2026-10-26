@@ -1746,6 +1746,7 @@
       renderList(i);
     });
 
+    if (typeof majLimite === "function") setTimeout(majLimite, 0);
     board.style.setProperty("--cols", Math.max(1, visible.length));
     var larges = indicesLarges(visible);
     if (larges.length) {
@@ -1831,10 +1832,55 @@
     return Math.max(0, maxPage - surplus);
   }
 
-  function deplacerVerticalement(y){
-    try { window.scrollTo({ top: y, behavior: "smooth" }); }
-    catch (e) { window.scrollTo(0, y); }
+  /* Animation maison : le « smooth » du navigateur dure 300 à 500 ms et on ne
+     peut pas régler sa durée. Ici, 140 ms, avec un départ vif et une arrivée
+     douce — environ trois fois plus rapide. */
+  function anime(de, vers, ms, appliquer){
+    if (reduceMotion) { appliquer(vers); return; }
+    var duree = ms || 140;
+    var t0 = performance.now();
+    (function pas(t){
+      var p = Math.min(1, (t - t0) / duree);
+      var e = 1 - Math.pow(1 - p, 3);
+      appliquer(de + (vers - de) * e);
+      if (p < 1) requestAnimationFrame(pas);
+    })(t0);
   }
+
+  function deplacerVerticalement(y, ms){
+    var depart = window.pageYOffset || document.documentElement.scrollTop || 0;
+    anime(depart, y, ms || 140, function(v){
+      try { window.scrollTo(0, Math.round(v)); }
+      catch (e) { window.scrollTo(0, Math.round(v)); }
+    });
+  }
+
+  /* Limite verticale de la carte affichée, mémorisée : la recalculer à chaque
+     évènement de défilement forcerait un recalcul de mise en page à chaque fois. */
+  var limiteCourante = 0;
+  function majLimite(){
+    var col = (carteActive !== null) ? colOf(Number(carteActive)) : null;
+    /* aucune carte active : on ne restreint rien (sinon le scroll se bloquerait à zéro) */
+    limiteCourante = col ? limiteVerticale(col)
+      : Math.max(0, (document.documentElement.scrollHeight || 0) - (window.innerHeight || 0));
+    return limiteCourante;
+  }
+
+  /* Le défilement vertical ne dépasse JAMAIS la fin de la carte affichée. */
+  function contenirDefilement(){
+    if (!enCartes()) return;
+    var y = window.pageYOffset || document.documentElement.scrollTop || 0;
+    if (y > limiteCourante + 1) {
+      try { window.scrollTo(0, limiteCourante); } catch (e) {}
+    }
+  }
+  window.addEventListener("scroll", function(){
+    if (!enCartes()) return;
+    var y = window.pageYOffset || document.documentElement.scrollTop || 0;
+    if (y > limiteCourante + 1) {
+      try { window.scrollTo(0, limiteCourante); } catch (e) {}
+    }
+  }, { passive: true });
 
   /* met en avant la carte au centre, et la pastille correspondante */
   function majPastilles(){
@@ -1858,10 +1904,11 @@
     /* on vient de changer de carte : on garde le niveau, sans dépasser la fin */
     if (actif !== null && actif !== carteActive) {
       carteActive = actif;
-      var colActif = colOf(Number(actif));
-      var limite = limiteVerticale(colActif);
+      var limite = majLimite();
       var y = window.pageYOffset || document.documentElement.scrollTop || 0;
-      if (y > limite) deplacerVerticalement(limite);
+      if (y > limite) deplacerVerticalement(limite, 140);
+    } else if (actif !== null) {
+      majLimite();                 /* la carte a pu grandir (tâche ajoutée) */
     }
   }
 
@@ -1871,14 +1918,13 @@
       if (!b) return;
       var col = colOf(Number(b.dataset.i));
       if (!col) return;
-      /* 1) centrer la carte horizontalement, SANS toucher au vertical */
+      /* 1) centrer la carte horizontalement, en 140 ms */
       var rb = board.getBoundingClientRect();
       var rc = col.getBoundingClientRect();
-      var gauche = board.scrollLeft + (rc.left - rb.left) - (rb.width - rc.width) / 2;
-      try { board.scrollTo({ left: gauche, behavior: "smooth" }); }
-      catch (e) { board.scrollLeft = gauche; }
+      var gauche = Math.max(0, board.scrollLeft + (rc.left - rb.left) - (rb.width - rc.width) / 2);
+      anime(board.scrollLeft, gauche, 140, function(v){ board.scrollLeft = v; });
       /* 2) et remonter en haut de la nouvelle carte */
-      deplacerVerticalement(0);
+      deplacerVerticalement(0, 140);
     });
   }
 
@@ -1888,7 +1934,7 @@
     rafCartes = requestAnimationFrame(function(){ rafCartes = 0; majPastilles(); });
   }, { passive: true });
 
-  window.addEventListener("resize", function(){ renderPastilles(); majPastilles(); });
+  window.addEventListener("resize", function(){ renderPastilles(); majPastilles(); majLimite(); });
 
   /* ------------------------------------------------------------------
      TRANSFÉRER À DEMAIN (5e liste, non visible sur le tableau)
