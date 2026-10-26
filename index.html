@@ -1807,6 +1807,35 @@
     });
   }
 
+  /* ------------------------------------------------------------------
+     CHANGEMENT DE CARTE : même niveau, mais jamais au-delà de la fin
+     La page défile normalement (une seule hauteur, celle de la plus grande
+     carte). Quand on glisse vers une carte plus courte, on garde le même
+     décalage vertical — mais on le plafonne pour s'arrêter à la FIN de cette
+     carte, pas dans le vide qui la suit.
+  ------------------------------------------------------------------ */
+  var carteActive = null;
+
+  function hauteurCartes(){
+    var h = 0;
+    Array.prototype.forEach.call(board.children, function(c){
+      if (c && c.classList && c.classList.contains("col")) h = Math.max(h, c.offsetHeight || 0);
+    });
+    return h;
+  }
+
+  /* décalage vertical maximal permis quand on regarde cette carte */
+  function limiteVerticale(col){
+    var maxPage = Math.max(0, (document.documentElement.scrollHeight || 0) - (window.innerHeight || 0));
+    var surplus = Math.max(0, hauteurCartes() - ((col && col.offsetHeight) || 0));
+    return Math.max(0, maxPage - surplus);
+  }
+
+  function deplacerVerticalement(y){
+    try { window.scrollTo({ top: y, behavior: "smooth" }); }
+    catch (e) { window.scrollTo(0, y); }
+  }
+
   /* met en avant la carte au centre, et la pastille correspondante */
   function majPastilles(){
     if (!pastilles || pastilles.hidden || !enCartes()) return;
@@ -1825,6 +1854,15 @@
     Array.prototype.forEach.call(pastilles.children, function(b){
       b.classList.toggle("actif", b.dataset.i === actif);
     });
+
+    /* on vient de changer de carte : on garde le niveau, sans dépasser la fin */
+    if (actif !== null && actif !== carteActive) {
+      carteActive = actif;
+      var colActif = colOf(Number(actif));
+      var limite = limiteVerticale(colActif);
+      var y = window.pageYOffset || document.documentElement.scrollTop || 0;
+      if (y > limite) deplacerVerticalement(limite);
+    }
   }
 
   if (pastilles) {
@@ -1833,7 +1871,14 @@
       if (!b) return;
       var col = colOf(Number(b.dataset.i));
       if (!col) return;
-      if (col.scrollIntoView) col.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+      /* 1) centrer la carte horizontalement, SANS toucher au vertical */
+      var rb = board.getBoundingClientRect();
+      var rc = col.getBoundingClientRect();
+      var gauche = board.scrollLeft + (rc.left - rb.left) - (rb.width - rc.width) / 2;
+      try { board.scrollTo({ left: gauche, behavior: "smooth" }); }
+      catch (e) { board.scrollLeft = gauche; }
+      /* 2) et remonter en haut de la nouvelle carte */
+      deplacerVerticalement(0);
     });
   }
 
