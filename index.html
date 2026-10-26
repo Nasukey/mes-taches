@@ -565,19 +565,7 @@
   }
   [data-affichage="cartes"] .col:hover{transform:scale(calc(1 - var(--d,0) * .06))}
   [data-affichage="cartes"] .col.centre{box-shadow:0 28px 62px -26px rgba(20,20,26,.55)}
-  /* Chaque carte défile POUR ELLE-MÊME. Avant, c'était la page entière qui
-     défilait : sa hauteur devenait celle de la PLUS GRANDE carte, donc arrivé
-     en bas d'une carte courte on se retrouvait au-delà de sa fin.
-     On ne touche PAS à la mise en page (les cartes restent centrées) : on
-     plafonne seulement la hauteur de la liste, qui défile alors seule. */
-  [data-affichage="cartes"] .list{
-    overflow-y:auto;overflow-x:hidden;
-    overscroll-behavior:contain;
-    -webkit-overflow-scrolling:touch;
-    max-height:calc(100vh - 20rem);
-    max-height:calc(100svh - 20rem);
-    margin-top:calc(16px*var(--ech));
-  }
+  [data-affichage="cartes"] .list{overflow:visible;margin-top:calc(16px*var(--ech))}
   [data-affichage="cartes"] .col-h{min-height:0}
   [data-affichage="cartes"] .name{font-size:calc(17px*var(--ech));letter-spacing:-.02em}
   [data-affichage="cartes"] .pct{font-size:calc(30px*var(--ech));letter-spacing:-.045em}
@@ -1845,14 +1833,7 @@
       if (!b) return;
       var col = colOf(Number(b.dataset.i));
       if (!col) return;
-      /* On ne déplace QUE horizontalement. scrollIntoView() recalait aussi la
-         verticale et ramenait la carte tout en haut : on perdait sa place au
-         milieu d'une longue liste. */
-      var rb = board.getBoundingClientRect();
-      var rc = col.getBoundingClientRect();
-      var gauche = board.scrollLeft + (rc.left - rb.left) - (rb.width - rc.width) / 2;
-      try { board.scrollTo({ left: gauche, behavior: "smooth" }); }
-      catch (e) { board.scrollLeft = gauche; }
+      if (col.scrollIntoView) col.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
     });
   }
 
