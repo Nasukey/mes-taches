@@ -2378,31 +2378,58 @@
   ------------------------------------------------------------------ */
   var geste = null;
 
+  /* on ignore seulement ce qui est vraiment cliquable ou déplaçable :
+     la zone vide, elle, doit répondre (c'était le bug) */
   function partDeQuelqueChoseDeCliquable(el){
     if (!el || !el.closest) return true;
-    return !!el.closest("button, a, input, textarea, select, summary, label, .past, .task, .board, [contenteditable=true]");
+    return !!el.closest("button, a, input, textarea, select, summary, label, .past, .task, .col, [contenteditable=true]");
   }
 
-  document.addEventListener("pointerdown", function(ev){
+  function debutGeste(x, y){
     if (!enCartes()) { geste = null; return; }
-    if (ev.pointerType && ev.pointerType !== "touch" && ev.pointerType !== "pen") { geste = null; return; }
-    if (ev.button && ev.button !== 0) { geste = null; return; }
-    if (partDeQuelqueChoseDeCliquable(ev.target)) { geste = null; return; }
-    geste = { x: ev.clientX, y: ev.clientY, t: Date.now() };
-  }, { passive: true });
+    geste = { x: x, y: y, t: Date.now() };
+  }
 
-  document.addEventListener("pointerup", function(ev){
+  function finGeste(x, y){
     if (!geste) return;
-    var dx = ev.clientX - geste.x, dy = ev.clientY - geste.y;
+    var dx = x - geste.x, dy = y - geste.y;
     var duree = Date.now() - geste.t;
     geste = null;
     if (duree > 1000) return;                              /* trop lent */
     if (Math.abs(dx) < 45) return;                         /* pas assez franc */
     if (Math.abs(dx) < Math.abs(dy) * 1.2) return;         /* plutôt vertical */
     changerCarte(dx < 0 ? 1 : -1);
-  }, { passive: true });
+  }
 
-  document.addEventListener("pointercancel", function(){ geste = null; }, { passive: true });
+  /* Les évènements tactiles ne sont PAS annulés quand le navigateur prend le
+     geste pour faire défiler la page — contrairement aux pointer events, qui
+     faisaient perdre le geste dès qu'on sortait de la bande des cartes. */
+  if ("ontouchstart" in window) {
+    document.addEventListener("touchstart", function(ev){
+      if (ev.touches && ev.touches.length > 1) { geste = null; return; }   /* deux doigts : on laisse (zoom) */
+      var t = ev.touches && ev.touches[0];
+      if (!t) { geste = null; return; }
+      if (partDeQuelqueChoseDeCliquable(ev.target)) { geste = null; return; }
+      debutGeste(t.clientX, t.clientY);
+    }, { passive: true });
+
+    document.addEventListener("touchend", function(ev){
+      var t = ev.changedTouches && ev.changedTouches[0];
+      if (!t) { geste = null; return; }
+      finGeste(t.clientX, t.clientY);
+    }, { passive: true });
+
+    document.addEventListener("touchcancel", function(){ geste = null; }, { passive: true });
+  } else {
+    /* repli pour les appareils sans tactile */
+    document.addEventListener("pointerdown", function(ev){
+      if (ev.button && ev.button !== 0) { geste = null; return; }
+      if (partDeQuelqueChoseDeCliquable(ev.target)) { geste = null; return; }
+      debutGeste(ev.clientX, ev.clientY);
+    }, { passive: true });
+    document.addEventListener("pointerup", function(ev){ finGeste(ev.clientX, ev.clientY); }, { passive: true });
+    document.addEventListener("pointercancel", function(){ geste = null; }, { passive: true });
+  }
 
   /* carte précédente (-1) ou suivante (+1), dans l'ordre affiché */
   function changerCarte(sens){
