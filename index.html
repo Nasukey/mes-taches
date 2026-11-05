@@ -1871,6 +1871,15 @@
      On limite plutôt la hauteur des cartes qui ne sont pas affichées
      (voir limiterHauteurs), ce qui rend le débordement impossible. */
 
+  /* amène une carte au centre, horizontalement, en 140 ms */
+  function centrerCarte(col){
+    if (!col) return;
+    var rb = board.getBoundingClientRect();
+    var rc = col.getBoundingClientRect();
+    var gauche = Math.max(0, board.scrollLeft + (rc.left - rb.left) - (rb.width - rc.width) / 2);
+    anime(board.scrollLeft, gauche, 140, function(v){ board.scrollLeft = v; });
+  }
+
   /* ------------------------------------------------------------------
      LA PAGE PREND LA HAUTEUR DE LA CARTE AFFICHÉE
      Les cartes non affichées sont hors écran (ou coupées au bas de la
@@ -1934,13 +1943,8 @@
       if (!b) return;
       var col = colOf(Number(b.dataset.i));
       if (!col) return;
-      /* 1) centrer la carte horizontalement, en 140 ms */
-      var rb = board.getBoundingClientRect();
-      var rc = col.getBoundingClientRect();
-      var gauche = Math.max(0, board.scrollLeft + (rc.left - rb.left) - (rb.width - rc.width) / 2);
-      anime(board.scrollLeft, gauche, 140, function(v){ board.scrollLeft = v; });
-      /* 2) et remonter en haut de la nouvelle carte */
-      deplacerVerticalement(0, 140);
+      centrerCarte(col);              /* 1) centrer, en 140 ms */
+      deplacerVerticalement(0, 140);  /* 2) et remonter en haut de la nouvelle carte */
     });
   }
 
@@ -2363,6 +2367,57 @@
     editer(txtVoisin, i);
     try { txtVoisin.scrollIntoView({ block: "nearest" }); } catch (e) {}
   });
+
+  /* ------------------------------------------------------------------
+     GLISSER N'IMPORTE OÙ POUR CHANGER DE CARTE
+     L'espace vide sous une carte courte ne fait pas partie de la zone qui
+     défile horizontalement : y glisser ne changeait donc rien. On écoute le
+     geste sur toute la page et on change de carte nous-mêmes.
+     On ignore : le tableau (il gère son propre défilement), tout ce qui est
+     cliquable (boutons, pastilles, tâches, champs), et les gestes verticaux.
+  ------------------------------------------------------------------ */
+  var geste = null;
+
+  function partDeQuelqueChoseDeCliquable(el){
+    if (!el || !el.closest) return true;
+    return !!el.closest("button, a, input, textarea, select, summary, label, .past, .task, .board, [contenteditable=true]");
+  }
+
+  document.addEventListener("pointerdown", function(ev){
+    if (!enCartes()) { geste = null; return; }
+    if (ev.pointerType && ev.pointerType !== "touch" && ev.pointerType !== "pen") { geste = null; return; }
+    if (ev.button && ev.button !== 0) { geste = null; return; }
+    if (partDeQuelqueChoseDeCliquable(ev.target)) { geste = null; return; }
+    geste = { x: ev.clientX, y: ev.clientY, t: Date.now() };
+  }, { passive: true });
+
+  document.addEventListener("pointerup", function(ev){
+    if (!geste) return;
+    var dx = ev.clientX - geste.x, dy = ev.clientY - geste.y;
+    var duree = Date.now() - geste.t;
+    geste = null;
+    if (duree > 1000) return;                              /* trop lent */
+    if (Math.abs(dx) < 45) return;                         /* pas assez franc */
+    if (Math.abs(dx) < Math.abs(dy) * 1.2) return;         /* plutôt vertical */
+    changerCarte(dx < 0 ? 1 : -1);
+  }, { passive: true });
+
+  document.addEventListener("pointercancel", function(){ geste = null; }, { passive: true });
+
+  /* carte précédente (-1) ou suivante (+1), dans l'ordre affiché */
+  function changerCarte(sens){
+    var visibles = [];
+    state.projects.forEach(function(_, i){ if (estAffiche(i)) visibles.push(i); });
+    if (visibles.length < 2) return;
+    var pos = 0;
+    for (var k = 0; k < visibles.length; k++) {
+      if (String(visibles[k]) === String(carteActive)) pos = k;
+    }
+    var cible = pos + sens;
+    if (cible < 0 || cible >= visibles.length) return;
+    var col = colOf(visibles[cible]);
+    if (col) centrerCarte(col);
+  }
 
   board.addEventListener("click", function(ev){
     var col = ev.target.closest(".col");
