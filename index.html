@@ -2323,6 +2323,47 @@
   /* ------------------------------------------------------------------
      INTERACTIONS
   ------------------------------------------------------------------ */
+  /* ------------------------------------------------------------------
+     FLÈCHES HAUT / BAS SUR UNE LIGNE
+     On reste dans la même colonne : ↑ ouvre la tâche juste au-dessus, ↓ celle
+     juste en dessous, en validant la ligne en cours (sans créer de ligne
+     vide). La ligne visée s'ouvre directement en modification.
+     Le gestionnaire est posé sur le tableau, pas sur les lignes : il survit
+     donc aux redessins de la liste.
+  ------------------------------------------------------------------ */
+  board.addEventListener("keydown", function(ev){
+    if (ev.key !== "ArrowUp" && ev.key !== "ArrowDown") return;
+    var txt = (ev.target && ev.target.closest) ? ev.target.closest(".txt") : null;
+    if (!txt) return;
+    var li = txt.closest(".task");
+    var col = txt.closest(".col");
+    if (!li || !col) return;
+
+    var voisin = (ev.key === "ArrowUp") ? li.previousElementSibling : li.nextElementSibling;
+    if (!voisin || !voisin.classList || !voisin.classList.contains("task")) return;
+
+    var i = Number(col.dataset.i);
+    var idVoisin = voisin.dataset.id;
+    ev.preventDefault();
+    if (ev.stopPropagation) ev.stopPropagation();
+
+    /* si on était en train d'écrire, on valide (sans nouvelle ligne) */
+    if (txt.isContentEditable) finirEdition(txt, i, false);
+
+    /* la liste a pu être redessinée : on retrouve la ligne par son identifiant */
+    var ul = (col.querySelector ? col.querySelector(".list") : null) || li.parentNode;
+    var cible = null;
+    if (ul) {
+      Array.prototype.forEach.call(ul.children, function(c){
+        if (c && c.dataset && c.dataset.id === idVoisin) cible = c;
+      });
+    }
+    var txtVoisin = cible ? cible.querySelector(".txt") : null;
+    if (!txtVoisin) return;
+    editer(txtVoisin, i);
+    try { txtVoisin.scrollIntoView({ block: "nearest" }); } catch (e) {}
+  });
+
   board.addEventListener("click", function(ev){
     var col = ev.target.closest(".col");
     if (!col) return;
